@@ -1,0 +1,29 @@
+// Simplified Million Module Models
+
+model MillionProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation("MillionUser", fields: [userId], references: [id])
+  displayName String?
+  currentLevel String?
+  totalPoints Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  scores      MillionScore[]
+}
+
+model MillionScore {
+  id         String   @id @default(cuid())
+  profileId  String
+  date       DateTime @default(now())
+  attendance Float    @default(0)
+  assignments Float   @default(0)
+  exams      Float    @default(0)
+  participation Float @default(0)
+  total      Float    @default(0)
+
+  profile MillionProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  
+  @@index([profileId])
+  @@index([date])
+}

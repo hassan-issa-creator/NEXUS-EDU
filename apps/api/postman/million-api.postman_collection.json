@@ -1,0 +1,260 @@
+{
+    "info": {
+        "name": "Million Dialogue API",
+        "description": "Complete API collection for Million Dialogue multiplayer quiz system",
+        "version": "1.0.0",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{jwt_token}}",
+                "type": "string"
+            }
+        ]
+    },
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:3001/api/million",
+            "type": "string"
+        },
+        {
+            "key": "jwt_token",
+            "value": "your-jwt-token-here",
+            "type": "string"
+        },
+        {
+            "key": "room_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "user_id",
+            "value": "",
+            "type": "string"
+        }
+    ],
+    "item": [
+        {
+            "name": "1. Create Room",
+            "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"title\": \"غرفة العلوم - المستوى المتوسط\",\n  \"type\": \"public\",\n  \"settings\": {\n    \"maxPlayers\": 10,\n    \"questionCount\": 10,\n    \"timeLimit\": 15,\n    \"difficulty\": \"mixed\"\n  }\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "{{base_url}}/create-room",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "create-room"
+                    ]
+                },
+                "description": "Create a new game room. Returns room details."
+            },
+            "response": []
+        },
+        {
+            "name": "2. Join Room",
+            "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"roomId\": \"{{room_id}}\"\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "{{base_url}}/join-room",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "join-room"
+                    ]
+                },
+                "description": "Join an existing room"
+            },
+            "response": []
+        },
+        {
+            "name": "3. Start Round",
+            "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"roomId\": \"{{room_id}}\"\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "{{base_url}}/start-round",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "start-round"
+                    ]
+                },
+                "description": "Start a new round (host only)"
+            },
+            "response": []
+        },
+        {
+            "name": "4. Submit Answer",
+            "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"roomId\": \"{{room_id}}\",\n  \"questionId\": 1,\n \"chosenIndex\": 2,\n  \"timeTaken\": 5\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "{{base_url}}/answer",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "answer"
+                    ]
+                },
+                "description": "Submit an answer to a question"
+            },
+            "response": []
+        },
+        {
+            "name": "5. Get Room Details",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{base_url}}/room/{{room_id}}",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "room",
+                        "{{room_id}}"
+                    ]
+                },
+                "description": "Get details for a specific room"
+            },
+            "response": []
+        },
+        {
+            "name": "6. Get Leaderboard",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{base_url}}/leaderboard/{{room_id}}",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "leaderboard",
+                        "{{room_id}}"
+                    ]
+                },
+                "description": "Get the leaderboard for a room"
+            },
+            "response": []
+        },
+        {
+            "name": "7. Get User History",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{base_url}}/history/{{user_id}}?limit=10",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "history",
+                        "{{user_id}}"
+                    ],
+                    "query": [
+                        {
+                            "key": "limit",
+                            "value": "10"
+                        }
+                    ]
+                },
+                "description": "Get user's game history"
+            },
+            "response": []
+        },
+        {
+            "name": "8. Leave Room",
+            "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"roomId\": \"{{room_id}}\"\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "{{base_url}}/leave-room",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "leave-room"
+                    ]
+                },
+                "description": "Leave a room"
+            },
+            "response": []
+        },
+        {
+            "name": "Health Check",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "http://localhost:3001/health",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "3001",
+                    "path": [
+                        "health"
+                    ]
+                },
+                "description": "Check server health"
+            },
+            "response": []
+        }
+    ]
+}

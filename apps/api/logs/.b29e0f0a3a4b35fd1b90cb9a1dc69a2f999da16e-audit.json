@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 30
+    },
+    "auditLog": "C:\\Users\\hassa\\Desktop\\anti\\million-platform\\apps\\api\\logs\\.b29e0f0a3a4b35fd1b90cb9a1dc69a2f999da16e-audit.json",
+    "files": [
+        {
+            "date": 1778025039951,
+            "name": "C:\\Users\\hassa\\Desktop\\anti\\million-platform\\apps\\api\\logs\\exceptions-2026-05-06.log",
+            "hash": "ecfaccc9fbbe9f383bf2f9f718e4f9de3c68d836eccfe2b5209a59618bab2c60"
+        }
+    ],
+    "hashType": "sha256"
+}

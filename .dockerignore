@@ -1,0 +1,11 @@
+node_modules
+dist
+.next
+.turbo
+.git
+docker-compose*.yml
+Dockerfile
+.env
+*.md
+npm-debug.log
+apps/mobile

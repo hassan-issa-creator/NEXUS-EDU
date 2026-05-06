@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: million-postgres
+    environment:
+      POSTGRES_USER: million
+      POSTGRES_PASSWORD: million_dev_2024
+      POSTGRES_DB: million_edtech
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ 'CMD-SHELL', 'pg_isready -U million' ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and BullMQ
+  redis:
+    image: redis:7-alpine
+    container_name: million-redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ 'CMD', 'redis-cli', 'ping' ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Optional: Redis Commander (UI for Redis)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: million-redis-commander
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - '8081:8081'
+    depends_on:
+      - redis
+
+  # Optional: Adminer (DB Manager)
+  adminer:
+    image: adminer:latest
+    container_name: million-adminer
+    ports:
+      - '8080:8080'
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+  redis_data:

@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: million_postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: million_user
+      POSTGRES_PASSWORD: million_password
+      POSTGRES_DB: million_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - million_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: million_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - million_network
+
+networks:
+  million_network:
+    driver: bridge
+
+volumes:
+  postgres_data:

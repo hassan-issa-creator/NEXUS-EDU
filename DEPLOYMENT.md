@@ -1,0 +1,142 @@
+# Million Platform - دليل النشر على VPS
+
+## المتطلبات
+
+### من Hostinger:
+- **خطة VPS**: KVM 2 أو أعلى (4GB RAM minimum)
+- **نظام التشغيل**: Ubuntu 22.04 LTS
+- **الدومين**: مثل `million-platform.com`
+
+> ⚠️ **تحذير**: الاستضافة المشتركة (Shared Hosting) لن تعمل! يجب استخدام VPS.
+
+---
+
+## خطوات النشر
+
+### 1️⃣ إعداد السيرفر الأولي
+
+```bash
+# الاتصال بالسيرفر
+ssh root@your-server-ip
+
+# تحميل وتشغيل سكربت الإعداد
+wget https://raw.githubusercontent.com/your-repo/million-platform/main/deploy/scripts/setup-vps.sh
+chmod +x setup-vps.sh
+./setup-vps.sh
+```
+
+### 2️⃣ استنساخ المشروع
+
+```bash
+cd /var/www/million-platform
+git clone https://github.com/your-username/million-platform.git .
+```
+
+### 3️⃣ إعداد البيئة
+
+```bash
+# نسخ ملف البيئة
+cp .env.production .env
+
+# تعديل المتغيرات
+nano .env
+```
+
+**المتغيرات الضرورية:**
+- `DATABASE_URL`: رابط قاعدة البيانات
+- `JWT_SECRET`: مفتاح سري (استخدم `openssl rand -base64 32`)
+- `FRONTEND_URL`: رابط الموقع `https://million-platform.com`
+- `API_URL`: رابط الـ API `https://api.million-platform.com`
+
+### 4️⃣ تشغيل قاعدة البيانات
+
+```bash
+docker compose -f docker-compose.prod.yml up -d postgres redis
+```
+
+### 5️⃣ بناء وتشغيل التطبيقات
+
+```bash
+# تثبيت الاعتماديات
+npm install
+
+# تشغيل migrations
+cd apps/api
+npx prisma migrate deploy --schema=../../prisma-backend/prisma/schema.prisma
+cd ../..
+
+# بناء التطبيقات
+npm run build
+
+# تشغيل باستخدام PM2
+pm2 start ecosystem.config.js
+pm2 save
+```
+
+### 6️⃣ إعداد Nginx
+
+```bash
+# نسخ الإعدادات
+sudo cp deploy/nginx/nginx.conf /etc/nginx/nginx.conf
+sudo cp deploy/nginx/sites/million-platform.conf /etc/nginx/sites-enabled/
+
+# تعديل اسم الدومين
+sudo nano /etc/nginx/sites-enabled/million-platform.conf
+# استبدل million-platform.com بدومينك
+
+# اختبار الإعدادات
+sudo nginx -t
+
+# إعادة تشغيل Nginx
+sudo systemctl reload nginx
+```
+
+### 7️⃣ الحصول على شهادة SSL
+
+```bash
+sudo certbot --nginx -d your-domain.com -d api.your-domain.com -d www.your-domain.com
+```
+
+---
+
+## التحديثات المستقبلية
+
+```bash
+cd /var/www/million-platform
+./deploy/scripts/deploy.sh
+```
+
+---
+
+## النسخ الاحتياطي التلقائي
+
+```bash
+# إضافة للـ crontab
+crontab -e
+
+# إضافة هذا السطر (يومياً الساعة 2 صباحاً)
+0 2 * * * /var/www/million-platform/deploy/scripts/backup.sh
+```
+
+---
+
+## الأوامر المفيدة
+
+| الأمر | الوصف |
+|-------|-------|
+| `pm2 status` | حالة التطبيقات |
+| `pm2 logs` | عرض اللوجات |
+| `pm2 restart all` | إعادة تشغيل |
+| `docker compose -f docker-compose.prod.yml logs` | لوجات Docker |
+
+---
+
+## التحقق من الصحة
+
+```bash
+# فحص الـ API
+curl https://api.your-domain.com/api/health
+
+# فحص الموقع
+curl -I https://your-domain.com
+```

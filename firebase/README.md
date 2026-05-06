@@ -1,0 +1,589 @@
+# Million EdTech - Firebase Backend 🔥
+
+Complete **Firebase backend** for Saudi EdTech platform - **100% Free Tier Compatible**.
+
+## 📋 Table of Contents
+
+- [Features](#features)
+- [Architecture](#architecture)
+- [Data Model](#data-model)
+- [Security Rules](#security-rules)
+- [Cloud Functions](#cloud-functions)
+- [Setup Guide](#setup-guide)
+- [Deployment](#deployment)
+- [API Usage](#api-usage)
+- [Testing](#testing)
+
+## ✨ Features
+
+- ✅ **Firebase Auth** with custom role claims (student/teacher/parent/admin)
+- ✅ **Firestore** - 15 collections with security rules
+- ✅ **Cloud Functions** - 5 functions (onCreate, scheduled, callable)
+- ✅ **Storage** - Secure file storage with role-based rules
+- ✅ **Realtime** - Live updates via Firestore listeners
+- ✅ **Free Tier** - Optimized for 10K+ students
+- ✅ **CI/CD** - GitHub Actions deployment pipeline
+
+## 🏗️ Architecture
+
+```
+Frontend (Next.js)
+  ↓ Firebase SDK
+Firebase Services
+  ├── Authentication (Email, Google, Microsoft SSO)
+  ├── Firestore (NoSQL Database)
+  ├── Cloud Functions (Serverless)
+  └── Storage (File uploads)
+```
+
+## 🗄️ Data Model
+
+### Collections
+
+1. **users** - User profiles with role
+2. **schools** - Educational institutions
+3. **classes** - Classes within schools
+4. **subjects** - Subjects/courses
+5. **enrollments** - Student↔Class mapping
+6. **parentStudents** - Parent↔Student relationships
+7. **assignments** - Teacher assignments
+8. **submissions** - Student submissions
+9. **grades** - Student grades
+10. **attendance** - Daily attendance
+11. **payments** - Student fees/invoices
+12. **notifications** - User notifications
+13. **messages** - In-class messaging
+14. **auditLogs** - System audit trail
+15. **assignmentSummaries** - Analytics data
+
+### Example Document Structure
+
+```typescript
+// users/{userId}
+{
+  email: "student@kfis.edu.sa",
+  fullName: "Ahmed Ali",
+  role: "student", // student | teacher | parent | admin
+  phoneNumber: "+966501234567",
+  avatarUrl: "https://...",
+  isActive: true,
+  createdAt: Timestamp,
+  metadata: {
+    busService: true,
+    discountPercentage: 10
+  }
+}
+
+// assignments/{assignmentId}
+{
+  classId: "class123",
+  teacherId: "teacher123",
+  title: "Algebra Chapter 3",
+  description: "Complete exercises",
+  dueDate: Timestamp,
+  totalPoints: 100,
+  status: "published", // draft | published | closed
+  metadata: {
+    questions: [
+      {
+        id: "q1",
+        type: "multiple_choice",
+        question: "What is 2+2?",
+        correctAnswer: "4",
+        points: 10
+      }
+    ]
+  }
+}
+```
+
+## 🔐 Security Rules
+
+### Role-Based Access Control (RBAC)
+
+Firebase Auth custom claims set user roles:
+
+```typescript
+// Set role via Cloud Function
+await admin.auth().setCustomUserClaims(userId, { role: 'teacher' });
+```
+
+### Firestore Rules Examples
+
+```javascript
+// Students can read published assignments in their classes
+allow read: if resource.data.status == 'published' && 
+               isEnrolledInClass(resource.data.classId);
+
+// Teachers can manage their assignments
+allow write: if resource.data.teacherId == request.auth.uid;
+
+// Parents can read their children's grades
+allow read: if isParentOf(resource.data.studentId);
+```
+
+### Storage Rules
+
+```javascript
+// Users upload their own profile images (max 2MB)
+allow write: if request.auth.uid == userId && 
+                request.resource.size < 2 * 1024 * 1024;
+
+// Students upload assignment attachments
+allow write: if request.auth.uid == userId && 
+                request.resource.size < 10 * 1024 * 1024;
+```
+
+## ⚡ Cloud Functions
+
+### 1. onCreateAssignment
+
+**Trigger:** Firestore onCreate (`assignments/{id}`)
+
+**Purpose:** Send notifications to all students when assignment is created
+
+```typescript
+// Automatically triggered when teacher creates assignment
+// - Finds all enrolled students
+// - Creates notification for each
+// - Sends push notification (FCM)
+// - Creates analytics summary
+```
+
+### 2. onSubmission
+
+**Trigger:** Firestore onCreate (`submissions/{id}`)
+
+**Purpose:** Auto-grade objective questions
+
+```typescript
+// Auto-grades multiple choice, true/false questions
+// - Checks answers against correct answers
+// - Calculates grade
+// - Updates submission status
+// - Creates grade record
+// - Notifies student
+```
+
+### 3. generateMonthlyInvoices
+
+**Trigger:** Scheduled (1st of every month, midnight Riyadh time)
+
+**Purpose:** Generate monthly invoices for all students
+
+```typescript
+// Runs automatically every month
+// - Gets all active enrollments
+// - Calculates fees (tuition + optional services)
+// - Applies discounts
+// - Creates payment records
+// - Sends notifications
+```
+
+### 4. setUserRole (Callable)
+
+**Trigger:** Client call
+
+**Purpose:** Admin sets user roles
+
+```typescript
+// Called by admins to assign roles
+const result = await functions.httpsCallable('setUserRole')({
+  userId: 'user123',
+  role: 'teacher'
+});
+```
+
+### 5. onUserCreate
+
+**Trigger:** Firebase Auth onCreate
+
+**Purpose:** Initialize Firestore user document
+
+```typescript
+// Automatically creates Firestore doc when user signs up
+// Sets default role: 'student'
+```
+
+## 🚀 Setup Guide
+
+### Prerequisites
+
+- Node.js 18+
+- Firebase CLI: `npm install -g firebase-tools`
+- Firebase project (free tier)
+
+### Step 1: Create Firebase Project
+
+```bash
+# Login to Firebase
+firebase login
+
+# Create new project at https://console.firebase.google.com
+```
+
+### Step 2: Initialize Firebase
+
+```bash
+# Navigate to project root
+cd million-platform/firebase
+
+# Initialize Firebase (if not already done)
+firebase init
+
+# Select:
+# - Firestore
+# - Functions (TypeScript)
+# - Storage
+# - Emulators
+```
+
+### Step 3: Configure Project
+
+```bash
+# Set your project ID in .firebaserc
+{
+  "projects": {
+    "default": "YOUR_PROJECT_ID"
+  }
+}
+```
+
+### Step 4: Install Dependencies
+
+```bash
+cd functions
+npm install
+cd ..
+```
+
+### Step 5: Enable Authentication
+
+In Firebase Console → Authentication → Sign-in method:
+
+1. **Email/Password** - Enable
+2. **Google** - Enable (add OAuth credentials)
+3. **Microsoft** - Enable (add Azure AD credentials)
+
+### Step 6: Deploy Rules
+
+```bash
+# Deploy Firestore rules
+firebase deploy --only firestore:rules
+
+# Deploy Storage rules
+firebase deploy --only storage:rules
+
+# Deploy indexes
+firebase deploy --only firestore:indexes
+```
+
+### Step 7: Deploy Functions
+
+```bash
+# Build functions
+cd functions
+npm run build
+
+# Deploy
+firebase deploy --only functions
+```
+
+## 📦 Deployment Methods
+
+### 1. Firebase CLI (Manual)
+
+```bash
+# Deploy everything
+firebase deploy
+
+# Deploy specific services
+firebase deploy --only firestore:rules
+firebase deploy --only storage:rules
+firebase deploy --only functions
+firebase deploy --only firestore:indexes
+```
+
+### 2. GitHub Actions (CI/CD)
+
+Setup secrets in GitHub:
+- Go to: Settings → Secrets → Actions
+- Add: `FIREBASE_TOKEN`
+
+Generate token:
+```bash
+firebase login:ci
+# Copy the token and add to GitHub secrets
+```
+
+Push to main branch → auto-deploy! 🎉
+
+### 3. Staging vs Production
+
+```bash
+# Create staging project
+firebase use --add
+
+# Deploy to staging
+firebase use staging
+firebase deploy
+
+# Deploy to production
+firebase use default
+firebase deploy
+```
+
+## 💻 API Usage
+
+### Initialize Firebase SDK
+
+```typescript
+// lib/firebase.ts
+import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
+import { getFunctions } from 'firebase/functions';
+
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
+};
+
+const app = initializeApp(firebaseConfig);
+
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const storage = getStorage(app);
+export const functions = getFunctions(app);
+```
+
+### Authentication Examples
+
+```typescript
+import { auth } from '@/lib/firebase';
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider
+} from 'firebase/auth';
+
+// Sign up
+const { user } = await createUserWithEmailAndPassword(
+  auth,
+  'student@kfis.edu.sa',
+  'password123'
+);
+
+// Sign in
+await signInWithEmailAndPassword(auth, email, password);
+
+// Google Sign-in
+const provider = new GoogleAuthProvider();
+await signInWithPopup(auth, provider);
+
+// Get current user role
+const idTokenResult = await auth.currentUser?.getIdTokenResult();
+const role = idTokenResult?.claims.role; // 'student' | 'teacher' | ...
+```
+
+### Firestore CRUD
+
+```typescript
+import { db } from '@/lib/firebase';
+import { 
+  collection, 
+  doc, 
+  getDoc, 
+  getDocs, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc,
+  query,
+  where,
+  orderBy
+} from 'firebase/firestore';
+
+// Get student's assignments
+const assignmentsRef = collection(db, 'assignments');
+const q = query(
+  assignmentsRef,
+  where('classId', '==', classId),
+  where('status', '==', 'published'),
+  orderBy('dueDate', 'asc')
+);
+const snapshot = await getDocs(q);
+const assignments = snapshot.docs.map(doc => ({
+  id: doc.id,
+  ...doc.data()
+}));
+
+// Submit assignment
+await addDoc(collection(db, 'submissions'), {
+  assignmentId,
+  studentId: auth.currentUser!.uid,
+  content: 'My answer...',
+  attachmentUrls: ['https://...'],
+  status: 'pending',
+  submittedAt: serverTimestamp()
+});
+
+// Update profile
+await updateDoc(doc(db, 'users', userId), {
+  fullName: 'New Name',
+  phoneNumber: '+966...'
+});
+```
+
+### Realtime Listeners
+
+```typescript
+import { onSnapshot } from 'firebase/firestore';
+
+// Listen to assignment updates
+const unsubscribe = onSnapshot(
+  doc(db, 'assignments', assignmentId),
+  (doc) => {
+    console.log('Assignment updated:', doc.data());
+  }
+);
+
+// Listen to new messages
+onSnapshot(
+  query(
+    collection(db, 'messages'),
+    where('classId', '==', classId),
+    orderBy('createdAt', 'desc')
+  ),
+  (snapshot) => {
+    snapshot.docChanges().forEach(change => {
+      if (change.type === 'added') {
+        console.log('New message:', change.doc.data());
+      }
+    });
+  }
+);
+
+// Cleanup
+unsubscribe();
+```
+
+### Cloud Functions (Callable)
+
+```typescript
+import { functions } from '@/lib/firebase';
+import { httpsCallable } from 'firebase/functions';
+
+// Set user role (admin only)
+const setRole = httpsCallable(functions, 'setUserRole');
+const result = await setRole({
+  userId: 'user123',
+  role: 'teacher'
+});
+```
+
+### Storage Upload
+
+```typescript
+import { storage } from '@/lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+
+// Upload profile image
+const fileRef = ref(storage, `profile-images/${userId}/avatar.png`);
+await uploadBytes(fileRef, file);
+const url = await getDownloadURL(fileRef);
+
+// Upload assignment attachment
+const attachmentRef = ref(
+  storage,
+  `attachments/${userId}/${assignmentId}/${file.name}`
+);
+await uploadBytes(attachmentRef, file);
+```
+
+## 🧪 Testing
+
+### Local Emulators
+
+```bash
+# Start emulators
+firebase emulators:start
+
+# Services available at:
+# - Auth: localhost:9099
+# - Firestore: localhost:8080
+# - Functions: localhost:5001
+# - Storage: localhost:9199
+# - UI: localhost:4000
+```
+
+### Connect Frontend to Emulators
+
+```typescript
+import { connectAuthEmulator } from 'firebase/auth';
+import { connectFirestoreEmulator } from 'firebase/firestore';
+import { connectFunctionsEmulator } from 'firebase/functions';
+import { connectStorageEmulator } from 'firebase/storage';
+
+if (process.env.NODE_ENV === 'development') {
+  connectAuthEmulator(auth, 'http://localhost:9099');
+  connectFirestoreEmulator(db, 'localhost', 8080);
+  connectFunctionsEmulator(functions, 'localhost', 5001);
+  connectStorageEmulator(storage, 'localhost', 9199);
+}
+```
+
+## 💰 Free Tier Limits
+
+Firebase Spark Plan (Free):
+- ✅ **Firestore:** 1GB storage, 50K reads/day, 20K writes/day
+- ✅ **Auth:** Unlimited users
+- ✅ **Functions:** 125K invocations/month, 40K GB-seconds/month
+- ✅ **Storage:** 5GB, 1GB/day downloads
+- ✅ **Hosting:** 10GB/month bandwidth
+
+**Optimization Tips:**
+1. Use Firestore queries efficiently (indexes)
+2. Cache frequently accessed data
+3. Compress images before upload
+4. Use Cloud Functions sparingly (batch operations)
+5. Monitor usage in Firebase Console
+
+## 📚 Environment Variables
+
+```bash
+# .env.local
+NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+```
+
+## 🔗 Resources
+
+- [Firebase Documentation](https://firebase.google.com/docs)
+- [Firestore Security Rules](https://firebase.google.com/docs/firestore/security/get-started)
+- [Cloud Functions](https://firebase.google.com/docs/functions)
+- [Firebase CLI Reference](https://firebase.google.com/docs/cli)
+
+## 🆚 Firebase vs Supabase
+
+| Feature | Firebase | Supabase |
+|---------|----------|----------|
+| **Database** | Firestore (No SQL) | PostgreSQL (SQL) |
+| **Auth** | Built-in + Custom Claims | Built-in + RLS |
+| **Realtime** | Firestore listeners | PostgreSQL subscriptions |
+| **Functions** | Cloud Functions (JS/TS) | Edge Functions (Deno) |
+| **Free Tier** | 50K reads/day | 500MB database |
+| **Best For** | Real-time apps, Mobile | Complex queries, Relational data |
+
+---
+
+**Built with ❤️ for Saudi EdTech** 🇸🇦🔥
