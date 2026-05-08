@@ -79,7 +79,7 @@ import { ProfileModule } from './profile/profile.module';
     AttendanceModule,
     MillionSimpleModule,
     HealthModule,
-    QueueModule,
+    QueueModule.forRoot(),
     GamificationModule,
     ReportModule,
     NotificationModule,
