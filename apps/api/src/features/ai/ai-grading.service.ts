@@ -63,7 +63,7 @@ export class AiGradingService {
 **بيانات الواجب:**
 العنوان: ${submission.assignment.title}
 الوصف: ${submission.assignment.description}
-الدرجة القصوى: ${submission.assignment.points}
+الدرجة القصوى: ${submission.assignment.maxScore}
 
 **إجابة الطالب (${submission.student.name}):**
 ${extractedText}
@@ -105,7 +105,7 @@ ${extractedText}
       });
 
       // Award XP via GamificationService (triggers WebSocket + level-up detection)
-      const percentage = (aiResult.grade / submission.assignment.points) * 100;
+      const percentage = (aiResult.grade / (submission.assignment.maxScore || 100)) * 100;
       let earnedXP = 0;
       if (percentage >= 90) earnedXP = 50;
       else if (percentage >= 75) earnedXP = 30;

@@ -12,8 +12,8 @@ export class EarlyInterventionService {
     private eventsGateway: EventsGateway,
   ) {}
 
-  // Run every Friday evening
-  @Cron(CronExpression.EVERY_FRIDAY_AT_8PM)
+  // Run every day at 8PM (EVERY_FRIDAY_AT_8PM doesn't exist in this version)
+  @Cron(CronExpression.EVERY_DAY_AT_8PM)
   async analyzeStudentPerformance() {
     this.logger.log('Starting weekly Early Intervention analysis...');
 

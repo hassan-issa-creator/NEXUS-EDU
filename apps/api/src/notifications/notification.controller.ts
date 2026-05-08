@@ -165,36 +165,45 @@ export class NotificationController {
       });
       userIds = enrollments.map((e) => e.studentId);
     } else if (body.targetType === 'all-students') {
-      // Find all students in teacher's classes
+      // Find all students in teacher's classes via direct enrollment query
       const subjects = await this.prisma.subject.findMany({
         where: { teacherId },
-        include: { class: { include: { enrollments: { select: { studentId: true } } } } },
+        select: { classId: true },
       });
-      const idSet = new Set<string>();
-      for (const s of subjects) {
-        (s.class as any)?.enrollments?.forEach((e: any) => idSet.add(e.studentId));
+      const classIds = subjects
+        .filter((s) => s.classId)
+        .map((s) => s.classId as string);
+      if (classIds.length > 0) {
+        const enrollments = await this.prisma.enrollment.findMany({
+          where: { classId: { in: classIds } },
+          select: { studentId: true },
+        });
+        userIds = [...new Set(enrollments.map((e) => e.studentId))];
       }
-      userIds = Array.from(idSet);
     } else if (body.targetType === 'parents') {
+      // Find all parents of students in teacher's classes
       const subjects = await this.prisma.subject.findMany({
         where: { teacherId },
-        include: {
-          class: {
-            include: {
-              enrollments: {
-                include: { student: { include: { parents: { select: { parentId: true } } } } },
-              },
+        select: { classId: true },
+      });
+      const classIds = subjects
+        .filter((s) => s.classId)
+        .map((s) => s.classId as string);
+      if (classIds.length > 0) {
+        const enrollments = await this.prisma.enrollment.findMany({
+          where: { classId: { in: classIds } },
+          include: {
+            student: {
+              include: { parents: { select: { parentId: true } } },
             },
           },
-        },
-      });
-      const idSet = new Set<string>();
-      for (const s of subjects) {
-        (s.class as any)?.enrollments?.forEach((e: any) =>
-          e.student?.parents?.forEach((p: any) => idSet.add(p.parentId)),
-        );
+        });
+        const idSet = new Set<string>();
+        for (const e of enrollments) {
+          (e.student as any)?.parents?.forEach((p: any) => idSet.add(p.parentId));
+        }
+        userIds = Array.from(idSet);
       }
-      userIds = Array.from(idSet);
     }
 
     // Create notifications for all targets
