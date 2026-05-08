@@ -4,17 +4,12 @@ const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
   typescript: {
-    // Allow production builds to succeed even with TypeScript errors
+    // Type errors are visible in logs but won't block the production build
     ignoreBuildErrors: true,
   },
   eslint: {
-    // Allow production builds to succeed even with ESLint errors
     ignoreDuringBuilds: true,
-  },
-  experimental: {
-    // Optimize for production
   },
 };
 

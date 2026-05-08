@@ -1,2 +1,2 @@
-web: npm run start --filter=web
-api: npm run start:prod --filter=api
+web: cd apps/web && npm start
+api: cd apps/api && npx prisma migrate deploy && node dist/main
