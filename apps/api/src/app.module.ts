@@ -28,7 +28,7 @@ import { MillionSimpleModule } from './features/million-simple/million-simple.mo
 import { HealthModule } from './health/health.module';
 // QueueModule disabled in production (no Redis configured)
 import { GamificationModule } from './gamification/gamification.module';
-import { ReportModule } from './report/report.module';
+// import { ReportModule } from './report/report.module'; // Disabled: depends on QueueModule
 import { NotificationModule } from './notifications/notification.module';
 import { AdminModule } from './admin/admin.module';
 import { AiModule } from './features/ai/ai.module';
@@ -81,7 +81,7 @@ import { ProfileModule } from './profile/profile.module';
     HealthModule,
     // QueueModule.forRoot(), // Disabled: no Redis on Railway
     GamificationModule,
-    ReportModule,
+    // ReportModule, // Disabled: depends on QueueModule (no Redis)
     NotificationModule,
     AdminModule,
     AiModule,
