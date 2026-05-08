@@ -1,0 +1,94 @@
+# 🌟 Comprehensive Documentation for NEXUS EDU Platform
+
+## 📌 1. Project Overview (Platform Vision)
+**NEXUS EDU** (formerly Million Platform) is an intelligent, integrated educational platform aiming to revolutionize the school education experience by combining Artificial Intelligence (AI), Gamification, and administrative automation tools.
+The platform provides an interconnected environment that brings together **Students**, **Teachers**, **Parents**, and **School Administration** in one place to deliver an enjoyable, interactive, and measurable educational journey.
+
+---
+
+## 🏗️ 2. Technical Architecture
+The project is built using a **Monorepo** architecture powered by `Turborepo` to easily manage both the front-end and back-end in a single repository.
+
+### 🌐 Front-end (Web App)
+* **Framework:** Next.js 16 (App Router).
+* **Language:** TypeScript.
+* **Styling:** TailwindCSS + Shadcn UI (featuring dark mode and glassmorphism designs).
+* **State & Data Management:** React Query & Zustand.
+* **Internationalization:** Next-Intl (supporting Arabic and English).
+
+### ⚙️ Back-end (API)
+* **Framework:** NestJS (scalable and robust architecture).
+* **Database:** PostgreSQL (hosted on Supabase).
+* **ORM:** Prisma v6.
+* **Real-time Communication:** Socket.IO (for chats and live notifications).
+* **Security:** JWT Authentication, Rate Limiting, Helmet.
+
+---
+
+## 🚀 3. Core Features
+
+### 🧑‍🎓 Student Portal
+1. **Gamification System:** "Million Journey", Experience Points (XP), levels, achievement badges, and Leaderboards.
+2. **AI Smart Tutor:** An AI assistant that explains lessons, analyzes weaknesses, and provides personalized content based on the student's "Smart Profile".
+3. **Assignments & Lessons:** View and submit assignments, and track completion progress.
+4. **Educational Games:** Interactive environments to learn subjects through play and competition.
+
+### 👨‍🏫 Teacher Portal
+1. **AI Content Generator:** A tool to generate lesson plans, question banks, and assignments with a single click.
+2. **Auto-Grading:** Automatically grades assignments and provides instant feedback to students.
+3. **QR Attendance:** A rapid attendance system using QR code scanning inside the classroom.
+4. **Student Risk Report:** A dashboard tracking students at risk of academic decline based on their absences and grades.
+
+### 👨‍👩‍👦 Parent Portal
+1. **AI Parent Advisor:** An AI that reads the student's data and advises parents on how to assist their child at home.
+2. **Live Tracking:** Real-time tracking of student attendance, overdue assignments, and academic level.
+3. **Scheduled Reports:** Automatically receive detailed periodic performance reports.
+
+### 🏛️ Administration Portal (School Management)
+1. Includes multiple roles: (Principal, Vice Principal, Student Counselor, Educational Supervisor, Accountant).
+2. Management of class schedules, classrooms, and teachers.
+3. Comprehensive school analytics to evaluate overall performance.
+
+---
+
+## 🛠️ 4. Development Timeline & Achievements
+
+1. **UI/UX Design & Development:** Developed more than 5 distinct portals with a modern design reflecting the NEXUS EDU brand identity.
+2. **Back-end & Database Modeling:** Designed a massive and complex `schema.prisma` linking all school entities (subjects, classes, assessments, gamification).
+3. **AI Integration:** Integrated the API with `OpenAI` models to build custom AI assistants for teachers and students.
+4. **Elimination of Mock Data:** Replaced all mock/dummy data with real connections to the production database.
+5. **Production Deployment:**
+   * Deployed both the API and Web App independently on **Railway**.
+   * Connected the database to **Supabase** servers.
+   * Resolved all environment conflicts (such as Next.js `middleware.ts` collision).
+   * Configured Environment Variables, bypassing `CORS` and `Prisma Connection Pooler` complexities, resulting in a 100% efficient server.
+
+---
+
+## 🔑 5. Default Demo Accounts
+The production database has been seeded with the following demo accounts (Password for all accounts is `123456`):
+
+**Administration:**
+* Principal: `principal@nexusedu.sa`
+* Vice Principal: `vice.principal@nexusedu.sa`
+* System Admin: `admin@nexusedu.sa`
+
+**Teachers:**
+* Arabic Teacher: `arabic.teacher@nexusedu.sa`
+* Math Teacher: `math.teacher@nexusedu.sa`
+
+**Students:**
+* Student 1: `student1@nexusedu.sa`
+* Student 2: `student2@nexusedu.sa`
+
+**Parents:**
+* Parent of Student 1: `parent1@nexusedu.sa`
+
+---
+
+## 🔗 6. Direct Links
+* **Live Web Platform (Production):** `https://web-production-46383.up.railway.app`
+* **Server (API):** `https://api-production-4359.up.railway.app/api`
+
+---
+*This documentation serves as a comprehensive guide to the project for stakeholders and future developers.*
