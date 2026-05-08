@@ -26,7 +26,7 @@ import { AdminPortalModule } from './features/admin-portal/admin-portal.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { MillionSimpleModule } from './features/million-simple/million-simple.module';
 import { HealthModule } from './health/health.module';
-import { QueueModule } from './queue/queue.module';
+// QueueModule disabled in production (no Redis configured)
 import { GamificationModule } from './gamification/gamification.module';
 import { ReportModule } from './report/report.module';
 import { NotificationModule } from './notifications/notification.module';
@@ -79,7 +79,7 @@ import { ProfileModule } from './profile/profile.module';
     AttendanceModule,
     MillionSimpleModule,
     HealthModule,
-    QueueModule.forRoot(),
+    // QueueModule.forRoot(), // Disabled: no Redis on Railway
     GamificationModule,
     ReportModule,
     NotificationModule,
