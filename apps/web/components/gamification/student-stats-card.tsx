@@ -7,28 +7,23 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Star, Trophy, Flame, Target, Zap, Award, Lock } from 'lucide-react';
 
-interface BadgeInfo {
+interface XpTransaction {
     id: string;
-    name: string;
-    nameAr: string;
-    description: string;
-    descriptionAr: string;
-    icon: string;
-    points: number;
-    earned?: boolean;
-    earnedAt?: Date;
-    progress?: number; // 0-100
+    amount: number;
+    reason: string;
+    createdAt: string;
 }
 
 interface StudentGamificationStats {
     totalPoints: number;
     level: number;
+    levelName: string;
     currentLevelPoints: number;
     nextLevelPoints: number;
     rank: number;
     totalStudents: number;
     streak: number;
-    badges: BadgeInfo[];
+    recentTransactions: XpTransaction[];
 }
 
 interface StudentGamificationCardProps {
@@ -36,8 +31,7 @@ interface StudentGamificationCardProps {
     data?: StudentGamificationStats;
 }
 
-const LEVEL_THRESHOLDS = [0, 100, 250, 500, 1000, 2000, 4000, 8000, 15000, 30000];
-const LEVEL_NAMES = ['مبتدئ', 'متعلم', 'نشيط', 'متميز', 'خبير', 'ماهر', 'محترف', 'أسطوري', 'أسطوري+', 'الأعلى'];
+const LEVEL_THRESHOLDS = [0, 500, 1500, 3000, 5000, 8000, 12000, 20000];
 
 export function StudentGamificationCard({ studentId, data: propData }: StudentGamificationCardProps) {
     const [data, setData] = useState<StudentGamificationStats | null>(propData || null);
@@ -52,29 +46,41 @@ export function StudentGamificationCard({ studentId, data: propData }: StudentGa
     const fetchData = async () => {
         try {
             setLoading(true);
-            const response = await fetch(`/api/gamification/user/${studentId}`);
-            if (response.ok) {
-                const statsData = await response.json();
-                setData(statsData);
-            } else {
-                // Use mock data for demo
+            const { apiClient } = await import('@/lib/api/client');
+            const response = await apiClient.get(`/gamification/rank`);
+            
+            if (response.data) {
+                const apiData = response.data;
+                
+                const currentLevelPoints = apiData.points;
+                const nextLevelPoints = LEVEL_THRESHOLDS[apiData.level] || LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1];
+
                 setData({
-                    totalPoints: 450,
-                    level: 3,
-                    currentLevelPoints: 450,
-                    nextLevelPoints: 500,
-                    rank: 12,
-                    totalStudents: 50,
-                    streak: 5,
-                    badges: [
-                        { id: 'first_quiz', nameAr: 'الخطوات الأولى', name: 'First Steps', description: '', descriptionAr: 'أكمل أول اختبار', icon: '🎯', points: 10, earned: true },
-                        { id: 'streak_7', nameAr: 'محارب الأسبوع', name: 'Week Warrior', description: '', descriptionAr: 'سجل دخول 7 أيام متتالية', icon: '🔥', points: 30, earned: false, progress: 71 },
-                        { id: 'perfect_score', nameAr: 'العلامة الكاملة', name: 'Perfect Score', description: '', descriptionAr: 'احصل على 100%', icon: '💯', points: 50, earned: true },
-                    ],
+                    totalPoints: apiData.points,
+                    level: apiData.level,
+                    levelName: apiData.levelName,
+                    currentLevelPoints,
+                    nextLevelPoints,
+                    rank: apiData.rank,
+                    totalStudents: 100, // This could be fetched from API later
+                    streak: 0, // Fallback, could be added to backend
+                    recentTransactions: apiData.recentTransactions || [],
                 });
             }
-        } catch {
-            console.error('Failed to fetch gamification stats');
+        } catch (err) {
+            console.error('Failed to fetch gamification stats', err);
+            // Fallback to minimal data if API fails
+            setData({
+                totalPoints: 0,
+                level: 1,
+                levelName: 'Beginner (مبتدئ)',
+                currentLevelPoints: 0,
+                nextLevelPoints: 500,
+                rank: 0,
+                totalStudents: 0,
+                streak: 0,
+                recentTransactions: [],
+            });
         } finally {
             setLoading(false);
         }
@@ -160,48 +166,39 @@ export function StudentGamificationCard({ studentId, data: propData }: StudentGa
                 </div>
             </Card>
 
-            {/* Badges */}
+            {/* Recent Transactions */}
             <Card>
                 <CardHeader className="pb-3">
                     <CardTitle className="flex items-center gap-2 text-lg">
-                        <Award className="w-5 h-5 text-yellow-500" />
-                        الإنجازات
+                        <Zap className="w-5 h-5 text-yellow-500" />
+                        سجل النقاط
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid grid-cols-3 gap-4">
-                        {data.badges.map((badge, index) => (
-                            <motion.div
-                                key={badge.id}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.1 }}
-                                className={`relative p-4 rounded-xl border-2 text-center transition-all ${
-                                    badge.earned 
-                                        ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20' 
-                                        : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50'
-                                }`}
-                            >
-                                {!badge.earned && (
-                                    <div className="absolute top-2 left-2">
-                                        <Lock className="w-4 h-4 text-gray-400" />
+                    <div className="space-y-4">
+                        {data.recentTransactions.length === 0 ? (
+                            <p className="text-sm text-center text-gray-500 py-4">لا توجد نقاط مسجلة بعد</p>
+                        ) : (
+                            data.recentTransactions.map((tx, index) => (
+                                <motion.div
+                                    key={tx.id}
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: index * 0.1 }}
+                                    className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/20"
+                                >
+                                    <div>
+                                        <p className="font-medium text-sm">{tx.reason}</p>
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            {new Date(tx.createdAt).toLocaleDateString('ar-SA')}
+                                        </p>
                                     </div>
-                                )}
-                                <span className={`text-4xl ${!badge.earned ? 'grayscale opacity-50' : ''}`}>
-                                    {badge.icon}
-                                </span>
-                                <p className="mt-2 font-medium text-sm">{badge.nameAr}</p>
-                                <Badge variant="secondary" className="mt-1 text-xs">
-                                    +{badge.points}
-                                </Badge>
-                                {!badge.earned && badge.progress !== undefined && (
-                                    <div className="mt-2">
-                                        <Progress value={badge.progress} className="h-1" />
-                                        <p className="text-xs text-gray-500 mt-1">{badge.progress}%</p>
-                                    </div>
-                                )}
-                            </motion.div>
-                        ))}
+                                    <Badge variant="default" className="bg-yellow-500 hover:bg-yellow-600">
+                                        +{tx.amount} نقطة
+                                    </Badge>
+                                </motion.div>
+                            ))
+                        )}
                     </div>
                 </CardContent>
             </Card>

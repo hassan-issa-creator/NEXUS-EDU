@@ -1,5 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma.service';
+import { Injectable, Optional } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../core/database/prisma.service';
+import OpenAI from 'openai';
 
 export interface MCQQuestion {
   id: string;
@@ -69,9 +71,22 @@ export interface RubricResult {
   }[];
 }
 
+import { EventsGateway } from '../gateway/events.gateway';
+
 @Injectable()
 export class AutoGradingService {
-  constructor(private prisma: PrismaService) { }
+  private openai: OpenAI | null = null;
+
+  constructor(
+    private prisma: PrismaService,
+    private eventsGateway: EventsGateway,
+    @Optional() private configService?: ConfigService,
+  ) {
+    const apiKey = configService?.get<string>('OPENAI_API_KEY') || process.env.OPENAI_API_KEY;
+    if (apiKey && apiKey !== 'sk_placeholder') {
+      this.openai = new OpenAI({ apiKey });
+    }
+  }
 
   /**
    * Auto-grade MCQ assignment
@@ -104,7 +119,7 @@ export class AutoGradingService {
     return {
       totalScore,
       maxScore,
-      percentage: Math.round((totalScore / maxScore) * 100),
+      percentage: maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0,
       correctCount,
       totalQuestions: questions.length,
       details,
@@ -112,24 +127,21 @@ export class AutoGradingService {
   }
 
   /**
-   * Grade using simple rubric (Excellent/Good/Needs Improvement/Unsatisfactory)
+   * Auto-grade rubric submission
    */
-  gradeWithRubric(
-    criteria: RubricCriteria[],
-    grades: RubricGrade[],
-  ): RubricResult {
-    const levelPoints: Record<RubricLevel, number> = {
+  gradeRubric(criteria: RubricCriteria[], grades: RubricGrade[]): RubricResult {
+    const levelMultipliers: Record<RubricLevel, number> = {
       EXCELLENT: 1.0,
       GOOD: 0.75,
       NEEDS_IMPROVEMENT: 0.5,
       UNSATISFACTORY: 0.25,
     };
 
-    const levelArabic: Record<RubricLevel, string> = {
+    const levelArabicNames: Record<RubricLevel, string> = {
       EXCELLENT: 'ممتاز',
       GOOD: 'جيد',
       NEEDS_IMPROVEMENT: 'يحتاج تحسين',
-      UNSATISFACTORY: 'غير مرضٍ',
+      UNSATISFACTORY: 'غير مقبول',
     };
 
     let totalScore = 0;
@@ -137,23 +149,22 @@ export class AutoGradingService {
 
     const details = criteria.map((criterion) => {
       const grade = grades.find((g) => g.criteriaId === criterion.id);
-      const level = grade?.level || 'UNSATISFACTORY';
-      const pointsEarned = Math.round(criterion.maxPoints * levelPoints[level]);
+      const level = grade?.level || 'NEEDS_IMPROVEMENT';
+      const pointsEarned = Math.round(criterion.maxPoints * levelMultipliers[level]);
       totalScore += pointsEarned;
 
       return {
         criteriaId: criterion.id,
         criteriaName: criterion.name,
         level,
-        levelArabic: levelArabic[level],
+        levelArabic: levelArabicNames[level],
         pointsEarned,
         maxPoints: criterion.maxPoints,
         comment: grade?.comment,
       };
     });
 
-    // Calculate overall level
-    const percentage = (totalScore / maxScore) * 100;
+    const percentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
     let overallLevel: RubricLevel = 'UNSATISFACTORY';
     if (percentage >= 90) overallLevel = 'EXCELLENT';
     else if (percentage >= 75) overallLevel = 'GOOD';
@@ -162,36 +173,33 @@ export class AutoGradingService {
     return {
       totalScore,
       maxScore,
-      percentage: Math.round(percentage),
+      percentage,
       overallLevel,
       details,
     };
   }
 
   /**
-   * Quick grade with simple level selection
+   * Generate feedback for a rubric level
    */
-  quickGrade(
-    level: RubricLevel,
-    maxScore: number = 100,
-  ): { score: number; feedback: string } {
+  generateRubricFeedback(level: RubricLevel, maxScore: number): { score: number; feedback: string } {
     const levelPoints: Record<RubricLevel, number> = {
       EXCELLENT: 0.95,
       GOOD: 0.8,
       NEEDS_IMPROVEMENT: 0.6,
-      UNSATISFACTORY: 0.4,
+      UNSATISFACTORY: 0.3,
     };
 
     const feedbackTemplates: Record<RubricLevel, string[]> = {
       EXCELLENT: [
-        'عمل ممتاز! استمر على هذا المستوى المتميز.',
-        'أداء رائع! أنت من أفضل الطلاب في هذه المهمة.',
-        'تميز واضح في الإجابات. أحسنت!',
+        'أداء رائع! أظهرت تفهماً عميقاً للمادة. استمر في هذا المستوى الممتاز.',
+        'عمل مذهل! الإجابة شاملة ودقيقة. أنت على المسار الصحيح تماماً!',
+        'ممتاز جداً! تفوقت في جميع جوانب الإجابة.',
       ],
       GOOD: [
-        'عمل جيد جداً! مع القليل من الجهد ستصل للتميز.',
-        'أداء جيد! هناك مجال للتحسين في بعض النقاط.',
-        'إجابات جيدة بشكل عام. استمر في التطوير.',
+        'عمل جيد! هناك بعض النقاط التي يمكن تطويرها لكن الأساس متين.',
+        'أداء جيد! مع بعض التعديلات البسيطة ستصل إلى المستوى الممتاز.',
+        'جيد جداً! واصل التحسن وستحقق نتائج رائعة.',
       ],
       NEEDS_IMPROVEMENT: [
         'تحتاج لمراجعة بعض النقاط. لا تتردد في طلب المساعدة.',
@@ -207,8 +215,7 @@ export class AutoGradingService {
 
     const score = Math.round(maxScore * levelPoints[level]);
     const templates = feedbackTemplates[level];
-    const feedback =
-      templates[Math.floor(Math.random() * templates.length)] || '';
+    const feedback = templates[Math.floor(Math.random() * templates.length)] || '';
 
     return { score, feedback };
   }
@@ -226,7 +233,8 @@ export class AutoGradingService {
       where: { id: submissionId },
       data: {
         grade: score,
-        feedback: `${feedback}\n\n[تصحيح تلقائي]`,
+        score: score,
+        feedback: feedback,
         gradedAt: new Date(),
       },
     });
@@ -262,5 +270,138 @@ export class AutoGradingService {
         maxPoints: 20,
       },
     ];
+  }
+
+  /**
+   * Grade submission using OpenAI SDK (GPT-4o with Vision support)
+   */
+  async gradeWithAI(assignmentId: string, submissionId: string) {
+    if (!this.openai) {
+      console.warn('[AutoGrading] OpenAI not configured — skipping AI grading.');
+      return;
+    }
+
+    try {
+      const [assignment, submission] = await Promise.all([
+        this.prisma.assignment.findUnique({ where: { id: assignmentId } }),
+        this.prisma.submission.findUnique({
+          where: { id: submissionId },
+          include: { student: { select: { id: true, name: true } } },
+        }),
+      ]);
+
+      if (!assignment || !submission) {
+        console.warn(`[AutoGrading] Missing data: assignment=${!!assignment} submission=${!!submission}`);
+        return;
+      }
+
+      // Skip if already graded
+      if (submission.gradedAt) return;
+
+      const maxScore = assignment.maxScore || (assignment as any).points || 10;
+
+      // Build multi-modal content (text + optional images for Vision)
+      const contentParts: any[] = [
+        {
+          type: 'text',
+          text: `تعليمات الواجب:\n${assignment.description || 'لا توجد تعليمات محددة.'}\n\nإجابة الطالب:\n${submission.content || '(لم يكتب الطالب إجابة نصية)'}`,
+        },
+      ];
+
+      const attachments = (submission.attachments as string[]) || [];
+      for (const url of attachments) {
+        if (/\.(png|jpg|jpeg|gif|webp)$/i.test(url)) {
+          contentParts.push({ type: 'image_url', image_url: { url, detail: 'low' } });
+        } else {
+          contentParts.push({ type: 'text', text: `[مرفق: ${url}]` });
+        }
+      }
+
+      const systemPrompt = `أنت معلم خبير ومتعاطف. قيّم إجابة الطالب بعدالة.
+الدرجة القصوى: ${maxScore}.
+أرجع JSON فقط بهذا الشكل الدقيق:
+{
+  "score": <رقم من 0 إلى ${maxScore}>,
+  "feedback": "<رسالة تشجيعية بالعربية توضح نقاط القوة والأماكن التي تحتاج تحسيناً>",
+  "strengths": ["<نقطة قوة 1>", "<نقطة قوة 2>"],
+  "weaknesses": ["<نقطة تحسين 1>"]
+}`;
+
+      const completion = await this.openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: contentParts },
+        ],
+        response_format: { type: 'json_object' },
+        max_tokens: 800,
+        temperature: 0.3,
+      });
+
+      let parsed: any = {};
+      try {
+        parsed = JSON.parse(completion.choices[0]?.message?.content || '{}');
+      } catch {
+        console.error('[AutoGrading] Failed to parse OpenAI JSON response');
+      }
+
+      const score = typeof parsed.score === 'number'
+        ? Math.min(Math.max(Math.round(parsed.score), 0), maxScore)
+        : 0;
+
+      const feedbackPayload = JSON.stringify({
+        text: parsed.feedback || 'تم التصحيح التلقائي بنجاح.',
+        strengths: Array.isArray(parsed.strengths) ? parsed.strengths : [],
+        weaknesses: Array.isArray(parsed.weaknesses) ? parsed.weaknesses : [],
+        isAiGenerated: true,
+      });
+
+      await this.saveAutoGrade(submissionId, score, feedbackPayload);
+      console.log(`[AutoGrading] ✅ Graded ${submissionId}: ${score}/${maxScore}`);
+
+      // Award XP based on score percentage
+      const percentage = (score / maxScore) * 100;
+      let earnedXP = 0;
+      if (percentage >= 90) earnedXP = 50;
+      else if (percentage >= 75) earnedXP = 30;
+      else if (percentage >= 60) earnedXP = 10;
+
+      if (earnedXP > 0) {
+        await this.prisma.user.update({
+          where: { id: submission.studentId },
+          data: { totalXP: { increment: earnedXP } },
+        });
+      }
+
+      // Real-time notification
+      try {
+        this.eventsGateway.emitAssignmentGraded(assignment.teacherId, {
+          submissionId: submission.id,
+          assignmentId: assignment.id,
+          grade: score,
+        });
+        this.eventsGateway.emitNotification(submission.studentId, {
+          title: '✨ تم تصحيح واجبك',
+          message: `حصلت على ${score}/${maxScore} في واجب: ${assignment.title}`,
+          type: 'grade',
+        });
+      } catch (notifErr) {
+        console.warn('[AutoGrading] Could not emit WebSocket event', notifErr);
+      }
+
+    } catch (error: any) {
+      console.error(`[AutoGrading] ❌ Error grading ${submissionId}:`, error?.message);
+      try {
+        await this.prisma.submission.update({
+          where: { id: submissionId },
+          data: {
+            feedback: JSON.stringify({
+              text: 'حدث خطأ أثناء التصحيح التلقائي. سيقوم المعلم بمراجعة الواجب يدوياً.',
+              isAiGenerated: false,
+            }),
+          },
+        });
+      } catch (_) { /* ignore fallback errors */ }
+    }
   }
 }

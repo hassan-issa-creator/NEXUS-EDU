@@ -72,6 +72,15 @@ const automationModules = [
         status: 'متاح',
     },
     {
+        icon: Zap,
+        label: 'محرك القواعد الذكية (IF-THEN)',
+        desc: 'أتمتة المهام الشرطية (مثال: إذا غاب الطالب 3 مرات، أرسل إشعاراً لولي الأمر تلقائياً).',
+        bg: 'bg-blue-600',
+        href: '/teacher/automation/rules',
+        stats: { total: 5, done: 0 },
+        status: 'متاح',
+    },
+    {
         icon: FolderOpen,
         label: 'ملف الإنجاز',
         desc: 'ملف إنجاز المعلم جاهز بالشواهد والوثائق — بورتفوليو يدعم التقييم الوظيفي.',

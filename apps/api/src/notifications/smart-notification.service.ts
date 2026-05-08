@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { EmailService } from './email.service';
+import { EventsGateway } from '../gateway/events.gateway';
 import { EmailTemplates, EmailTemplateData } from './templates/email-templates';
 
 export type NotificationType =
@@ -45,7 +46,8 @@ export class SmartNotificationService {
     private prisma: PrismaService,
     private emailService: EmailService,
     private whatsAppService: WhatsAppService,
-  ) { }
+    @Optional() private eventsGateway: EventsGateway,
+  ) {}
 
   /**
    * Notify parent about student absence
@@ -465,21 +467,22 @@ export class SmartNotificationService {
       // For now, we'll store in-app notifications
       // Later: integrate with Firebase FCM, OneSignal, or email service
 
-      // TODO: Create Notification model in Prisma schema
-      // const notification = await this.prisma.notification.create({
-      //   data: {
-      //     type: payload.type,
-      //     title: payload.titleAr,
-      //     body: payload.bodyAr,
-      //     priority: payload.priority,
-      //     recipientId: payload.recipientId,
-      //     recipientType: payload.recipientType,
-      //     relatedId: payload.relatedId,
-      //     actionUrl: payload.actionUrl,
-      //     expiresAt: payload.expiresAt,
-      //     isRead: false,
-      //   },
-      // });
+      let prismaType: any = 'INFO';
+      if (payload.type === 'STUDENT_ABSENT' || payload.type === 'ASSIGNMENT_LATE' || payload.type === 'LOW_ATTENDANCE' || payload.type === 'HOMEWORK_MISSING' || payload.type === 'MISSED_PREP') prismaType = 'WARNING';
+      if (payload.type === 'EXAM_REMINDER') prismaType = 'REMINDER';
+      if (payload.type === 'GRADE_POSTED') prismaType = 'GRADE';
+      if (payload.type === 'HOMEWORK_COMPLETED') prismaType = 'SUCCESS';
+
+      const notification = await this.prisma.notification.create({
+        data: {
+          type: prismaType,
+          title: payload.titleAr,
+          body: payload.bodyAr,
+          userId: payload.recipientId,
+          data: payload.actionUrl ? JSON.stringify({ actionUrl: payload.actionUrl }) : null,
+          isRead: false,
+        },
+      });
 
       console.log(
         `[Notification] ${payload.type} to ${payload.recipientType}:${payload.recipientId}`,
@@ -502,9 +505,20 @@ export class SmartNotificationService {
         }
       }
 
+      // Push real-time notification via WebSocket
+      this.eventsGateway?.emitNotification(payload.recipientId, {
+        id: notification.id,
+        title: payload.titleAr,
+        body: payload.bodyAr,
+        type: notification.type,
+        isRead: false,
+        createdAt: notification.createdAt,
+        actionUrl: payload.actionUrl,
+      });
+
       return {
         success: true,
-        notificationId: `temp-${Date.now()}`,
+        notificationId: notification.id,
       };
     } catch (error: any) {
       return {
@@ -512,5 +526,27 @@ export class SmartNotificationService {
         error: error?.message || 'Failed to send notification',
       };
     }
+  }
+
+  async getUserNotifications(userId: string) {
+    return this.prisma.notification.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+  }
+
+  async markAsRead(id: string, userId: string) {
+    return this.prisma.notification.updateMany({
+      where: { id, userId },
+      data: { isRead: true },
+    });
+  }
+
+  async markAllAsRead(userId: string) {
+    return this.prisma.notification.updateMany({
+      where: { userId, isRead: false },
+      data: { isRead: true },
+    });
   }
 }

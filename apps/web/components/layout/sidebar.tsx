@@ -31,6 +31,8 @@ import {
     UserCog,
     Building2,
     BookMarked,
+    Star,
+    Brain,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -283,6 +285,7 @@ function getNavigationByRole(role: string) {
                 { href: '/student/content' as any, label: 'المكتبة التعليمية', icon: Video },
                 { href: '/student/attendance' as any, label: 'سجل الحضور', icon: QrCode },
                 { href: '/student/messages' as any, label: 'الرسائل', icon: MessageSquare },
+                { href: '/student/profile' as any, label: 'الملف الذكي', icon: Brain },
                 ...settings,
             ]
 
@@ -294,6 +297,7 @@ function getNavigationByRole(role: string) {
                 { href: '/teacher/grading' as any, label: 'التصحيح', icon: ClipboardList },
                 { href: '/teacher/attendance' as any, label: 'الحضور والغياب', icon: Calendar },
                 { href: '/teacher/lessons' as any, label: 'الدروس', icon: BookOpen },
+                { href: '/teacher/messages' as any, label: 'الرسائل', icon: MessageSquare },
                 { href: '/teacher/automation' as any, label: 'أدوات الأتمتة', icon: Zap },
                 { href: '/teacher/notifications' as any, label: 'التنبيهات', icon: Award },
                 ...settings,

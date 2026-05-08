@@ -1,6 +1,6 @@
-import axios, { AxiosAdapter } from 'axios'
+import axios from 'axios'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'
 
 // Create axios instance
 export const apiClient = axios.create({
@@ -11,37 +11,9 @@ export const apiClient = axios.create({
     withCredentials: true, // For cookies (refresh token)
 })
 
-// Mock adapter for Demo mode
-const demoAdapter: AxiosAdapter = async (config) => {
-    const url = config.url || ''
-    
-    // 1. Assignments Mock
-    if (url.includes('/assignments/student')) {
-        return {
-            data: [
-                { id: '1', title: 'Math Quiz 1', subject: { name: 'Mathematics' }, status: 'pending', dueDate: new Date(Date.now() + 86400000).toISOString() },
-                { id: '2', title: 'Science Project', subject: { name: 'Science' }, status: 'graded', grade: 95 },
-                { id: '3', title: 'History Essay', subject: { name: 'History' }, status: 'submitted' }
-            ],
-            status: 200, statusText: 'OK', headers: {}, config, request: {}
-        }
-    }
-    
-    // 2. Default empty mock for any other unhandled API calls
-    return {
-        data: [],
-        status: 200, statusText: 'OK', headers: {}, config, request: {}
-    }
-}
-
-// Request interceptor - add access token and handle demo
+// Request interceptor - add access token
 apiClient.interceptors.request.use(
     (config) => {
-        if (typeof window !== 'undefined' && localStorage.getItem('is_demo') === 'true') {
-            config.adapter = demoAdapter
-            return config
-        }
-
         const token = localStorage.getItem('access_token')
         if (token) {
             config.headers.Authorization = `Bearer ${token}`

@@ -9,7 +9,8 @@ interface LeaderboardEntry {
   name: string;
   avatar?: string;
   points: number;
-  badges: string[];
+  level: number;
+  levelName: string;
 }
 
 interface LeaderboardProps {
@@ -30,24 +31,26 @@ export function Leaderboard({ title = 'لوحة الشرف', limit = 10 }: Leade
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // TODO: Replace with actual API call
-    const mockData: LeaderboardEntry[] = [
-      { rank: 1, userId: '1', name: 'أحمد محمد', points: 1250, badges: ['perfect_score', 'quiz_master'] },
-      { rank: 2, userId: '2', name: 'فاطمة علي', points: 1180, badges: ['streak_7', 'top_10'] },
-      { rank: 3, userId: '3', name: 'محمد أحمد', points: 1050, badges: ['first_quiz', 'perfect_score'] },
-      { rank: 4, userId: '4', name: 'سارة حسن', points: 980, badges: ['streak_7'] },
-      { rank: 5, userId: '5', name: 'عمر خالد', points: 920, badges: ['first_quiz'] },
-      { rank: 6, userId: '6', name: 'نور الدين', points: 850, badges: [] },
-      { rank: 7, userId: '7', name: 'ليلى أحمد', points: 820, badges: ['first_quiz'] },
-      { rank: 8, userId: '8', name: 'يوسف علي', points: 780, badges: [] },
-      { rank: 9, userId: '9', name: 'مريم حسن', points: 750, badges: ['streak_7'] },
-      { rank: 10, userId: '10', name: 'خالد محمود', points: 720, badges: [] },
-    ];
+    const fetchLeaderboard = async () => {
+      try {
+        setLoading(true);
+        const { apiClient } = await import('@/lib/api/client');
+        const response = await apiClient.get(`/gamification/leaderboard?limit=${limit}`);
+        
+        if (response.data && Array.isArray(response.data)) {
+          setEntries(response.data);
+        } else {
+          setEntries([]);
+        }
+      } catch (err) {
+        console.error('Failed to fetch leaderboard', err);
+        setEntries([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    setTimeout(() => {
-      setEntries(mockData.slice(0, limit));
-      setLoading(false);
-    }, 500);
+    fetchLeaderboard();
   }, [limit]);
 
   const getRankStyle = (rank: number) => {
@@ -112,27 +115,22 @@ export function Leaderboard({ title = 'لوحة الشرف', limit = 10 }: Leade
 
             {/* Avatar & Name */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col gap-1">
                 <span className="font-medium text-white truncate">
                   {entry.name}
                 </span>
-                {/* Badges */}
-                <span className="flex gap-0.5">
-                  {entry.badges.slice(0, 3).map((badge) => (
-                    <span key={badge} title={badge}>
-                      {BADGE_ICONS[badge] || '🎖️'}
-                    </span>
-                  ))}
+                <span className="text-xs text-blue-300 font-semibold">
+                  مستوى {entry.level}: {entry.levelName}
                 </span>
               </div>
             </div>
 
             {/* Points */}
-            <div className="text-left">
+            <div className="text-left flex flex-col items-end">
               <span className="text-lg font-bold text-blue-400">
                 {entry.points.toLocaleString('ar-EG')}
               </span>
-              <span className="text-xs text-slate-500 block">
+              <span className="text-xs text-slate-500 block mt-1">
                 نقطة
               </span>
             </div>

@@ -76,4 +76,30 @@ export class ClassService {
       where: { id },
     });
   }
+
+  async findStudentClasses(studentId: string) {
+    const enrollments = await this.prisma.enrollment.findMany({
+      where: { studentId },
+      include: {
+        class: {
+          include: {
+            teacher: {
+              select: { name: true }
+            }
+          }
+        }
+      }
+    });
+
+    return enrollments.map(e => ({
+      id: e.class.id,
+      name: e.class.name,
+      teacher: e.class.teacher?.name || 'Unknown',
+      schedule: 'Mon, Wed 10:00 AM', // In a real app, this would come from ClassSubject schedule
+      room: 'Main Room',
+      nextClass: new Date().toISOString(),
+      isLive: false,
+      joinLink: `/student/classroom/${e.class.id}`,
+    }));
+  }
 }

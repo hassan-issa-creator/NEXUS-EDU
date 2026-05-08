@@ -1,4 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../../core/database/prisma.service';
+import { GamificationService } from '../../gamification/gamification.service';
 import OpenAI from 'openai';
 
 @Injectable()
@@ -6,68 +9,86 @@ export class AiTutorService {
   private openai: OpenAI | null = null;
   private readonly logger = new Logger(AiTutorService.name);
 
-  constructor() {
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (apiKey) {
+  constructor(
+    private configService: ConfigService,
+    private prisma: PrismaService,
+    private gamification: GamificationService,
+  ) {
+    const apiKey = this.configService.get<string>('OPENAI_API_KEY');
+    if (apiKey && apiKey !== 'sk_placeholder') {
       this.openai = new OpenAI({ apiKey });
       this.logger.log('OpenAI Service initialized');
     } else {
-      this.logger.warn('OPENAI_API_KEY not found. Using Mock AI Service.');
+      this.logger.warn('OPENAI_API_KEY not found or placeholder used.');
     }
   }
 
   async askTutor(
     question: string,
-    context?: { subject?: string; grade?: string },
+    context?: { subject?: string; grade?: string; studentId?: string },
+    history: { role: 'user' | 'assistant'; content: string }[] = [],
   ): Promise<string> {
     if (!this.openai) {
-      return this.getMockResponse(question, context);
+      throw new Error('OpenAI API Key is not configured for AiTutor');
     }
 
     try {
-      const systemPrompt = `You are an intelligent and helpful AI tutor for students. 
+      let learningStylePrompt = 'Explain concepts simply and clearly.';
+      
+      if (context?.studentId) {
+        const profile = await this.prisma.smartStudentProfile.findUnique({
+          where: { userId: context.studentId }
+        });
+        
+        if (profile?.learningStyle === 'VISUAL') {
+          learningStylePrompt = 'Use vivid imagery, visual metaphors, and examples from daily Saudi life to explain concepts. Suggest drawing diagrams where applicable.';
+        } else if (profile?.learningStyle === 'LOGICAL') {
+          learningStylePrompt = 'Explain step-by-step logically. Break down complex problems into sequence of logical deductions. Avoid fluff.';
+        } else if (profile?.learningStyle === 'SOCIAL') {
+          learningStylePrompt = 'Use stories, dialogues, and relate concepts to people, society, or historical figures. Make it sound like a friendly conversation.';
+        }
+      }
+
+      const systemPrompt = `You are an intelligent, empathetic AI tutor for students in Saudi Arabia. 
       Subject: ${context?.subject || 'General'}
       Grade Level: ${context?.grade || 'Unknown'}
       
       Instructions:
-      - Explain concepts simply and clearly.
-      - Do not just give the answer; explain the "Why" and "How".
-      - Be encouraging and positive.
-      - Answer in the same language as the question (likely Arabic or English).`;
+      - ${learningStylePrompt}
+      - CRITICAL: DO NOT just give the direct answer to homework or test questions. Guide the student to discover the answer themselves.
+      - Ask leading questions to help them think.
+      - Be encouraging, positive, and supportive.
+      - Always answer in Arabic (unless asked otherwise), using a supportive tone (e.g. "بطل", "ممتاز").`;
+
+      const messages: any[] = [
+        { role: 'system', content: systemPrompt },
+        ...history,
+        { role: 'user', content: question },
+      ];
 
       const completion = await this.openai.chat.completions.create({
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: question },
-        ],
-        model: 'gpt-3.5-turbo', // Use 3.5 for cost / speed, or gpt-4o if available
+        messages,
+        model: 'gpt-4o',
+        temperature: 0.7,
       });
 
-      return (
-        completion.choices[0].message.content ||
-        'Sorry, I could not generate a response.'
-      );
-    } catch (error) {
-      this.logger.error('OpenAI API Error', error);
-      return 'Sorry, I am having trouble connecting to my brain right now. Please try again later.';
+      const responseText = completion.choices[0].message.content || 'Sorry, I could not generate a response.';
+      
+      // Gamification: Reward XP for using AI Tutor (max 5 XP per interaction, maxes out naturally)
+      if (context?.studentId) {
+        await this.gamification.awardXp(
+          context.studentId,
+          5,
+          'استخدام المعلم الذكي',
+        );
+      }
+
+      return responseText;
+    } catch (error: any) {
+      this.logger.error('OpenAI API Error: ' + error.message, error);
+      throw new Error('تعذر الاتصال بالذكاء الاصطناعي: ' + error.message);
     }
   }
 
-  private getMockResponse(question: string, context?: any): string {
-    // Simple Keyword matching for mock with Arabic support
-    const lowerQ = question.toLowerCase();
 
-    if (lowerQ.includes('خطة') || lowerQ.includes('دراسة') || lowerQ.includes('plan')) {
-      return 'بكل تأكيد! لإنشاء خطة دراسية فعالة، أنصحك بالبدء بتقسيم المواد حسب الأولوية. هل ترغب في أن أقوم بجدولة مهامك ومراجعاتك للأسبوع القادم بناءً على الواجبات المعلقة؟';
-    }
-    if (lowerQ.includes('واجب') || lowerQ.includes('سؤال') || lowerQ.includes('homework')) {
-      return 'أنا هنا لمساعدتك! يمكنك تزويدي بالسؤال الذي تواجه صعوبة فيه وسأقوم بشرح الخطوات الأساسية للحل دون إعطائك الإجابة النهائية مباشرة لكي تستفيد من التجربة.';
-    }
-    if (lowerQ.includes('درس') || lowerQ.includes('اشرح') || lowerQ.includes('explain')) {
-      return 'درس اليوم كان يركز على المفاهيم الأساسية. لتسهيل الفهم، تخيل أن الموضوع يشبه بناء منزل؛ يجب أن تضع الأساسات أولاً قبل بناء الجدران. هل هناك نقطة محددة لم تكن واضحة لك؟';
-    }
-
-    return `هذا سؤال مثير للاهتمام حقاً! كمساعد ذكي في NEXUS، أرى أنك تبحث عن مساعدة بخصوص "${question}". 
-(ملاحظة: النظام حالياً يعمل في الوضع التجريبي الذكي لعدم توفر مفتاح OpenAI، سيتم ربط الذكاء الاصطناعي الكامل قريباً جداً!)`;
-  }
 }

@@ -30,27 +30,27 @@ export interface CreateSubjectDto {
 
 export const subjectService = {
     getAll: async () => {
-        const response = await api.get<SubjectEntity[]>('/subjects');
-        return response.data;
+        const response = await api.get<any>('/subjects');
+        return response.data?.data ?? response.data;
     },
 
     getOne: async (id: string) => {
-        const response = await api.get<SubjectEntity>(`/subjects/${id}`);
-        return response.data;
+        const response = await api.get<any>(`/subjects/${id}`);
+        return response.data?.data ?? response.data;
     },
 
     create: async (data: CreateSubjectDto) => {
-        const response = await api.post<SubjectEntity>('/subjects', data);
-        return response.data;
+        const response = await api.post<any>('/subjects', data);
+        return response.data?.data ?? response.data;
     },
 
     update: async (id: string, data: Partial<CreateSubjectDto>) => {
-        const response = await api.patch<SubjectEntity>(`/subjects/${id}`, data);
-        return response.data;
+        const response = await api.patch<any>(`/subjects/${id}`, data);
+        return response.data?.data ?? response.data;
     },
 
     delete: async (id: string) => {
-        const response = await api.delete(`/subjects/${id}`);
-        return response.data;
+        const response = await api.delete<any>(`/subjects/${id}`);
+        return response.data?.data ?? response.data;
     },
 };

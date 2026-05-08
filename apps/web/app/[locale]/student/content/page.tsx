@@ -1,86 +1,59 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { Play, FileText, Link as LinkIcon, Video, Music, BookOpen, Heart, Bookmark, MessageCircle, TrendingUp } from 'lucide-react';
+import { Play, FileText, Link as LinkIcon, Video, Music, BookOpen, Heart, Bookmark, MessageCircle, TrendingUp, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { apiClient } from '@/lib/api-client';
 
 export default function ContentPage() {
     const t = useTranslations();
     const [filter, setFilter] = useState('all');
+    const [contentItems, setContentItems] = useState<any[]>([]);
+    const [categories, setCategories] = useState<any[]>([]);
+    const [stats, setStats] = useState({ videos: 0, docs: 0, links: 0, hours: 0 });
+    const [loading, setLoading] = useState(true);
 
-    const contentItems = [
-        {
-            id: '1',
-            title: 'مقدمة في الرياضيات',
-            type: 'video',
-            icon: Video,
-            duration: '15:30',
-            progress: 75,
-            thumbnail: '🎥',
-            views: 1234,
-            likes: 89,
-        },
-        {
-            id: '2',
-            title: 'ملخص الفيزياء - الفصل الأول',
-            type: 'document',
-            icon: FileText,
-            size: '2.5 MB',
-            progress: 100,
-            thumbnail: '📄',
-            views: 567,
-            likes: 45,
-        },
-        {
-            id: '3',
-            title: 'شرح الكيمياء العضوية',
-            type: 'video',
-            icon: Video,
-            duration: '22:15',
-            progress: 30,
-            thumbnail: '🎬',
-            views: 890,
-            likes: 67,
-        },
-        {
-            id: '4',
-            title: 'موارد إضافية - Khan Academy',
-            type: 'link',
-            icon: LinkIcon,
-            url: 'khanacademy.org',
-            progress: 0,
-            thumbnail: '🔗',
-            views: 234,
-            likes: 12,
-        },
-        {
-            id: '5',
-            title: 'الأحياء - الخلية الحية',
-            type: 'video',
-            icon: Video,
-            duration: '18:45',
-            progress: 50,
-            thumbnail: '🎞️',
-            views: 445,
-            likes: 34,
-        },
-        {
-            id: '6',
-            title: 'مراجعة التاريخ',
-            type: 'audio',
-            icon: Music,
-            duration: '12:00',
-            progress: 0,
-            thumbnail: '🎧',
-            views: 123,
-            likes: 8,
-        },
-    ];
+    useEffect(() => {
+        const fetchContent = async () => {
+            try {
+                const [itemsRes, catsRes] = await Promise.all([
+                    apiClient.get('/content/items'),
+                    apiClient.get('/content/categories')
+                ]);
+                
+                const items = itemsRes.data?.data || itemsRes.data || [];
+                if (items.length >= 0) {
+                    setContentItems(items);
+                    setStats({
+                        videos: items.filter((i: any) => i.type === 'video').length,
+                        docs: items.filter((i: any) => i.type === 'document').length,
+                        links: items.filter((i: any) => i.type === 'link').length,
+                        hours: parseFloat((items.filter((i: any) => i.type === 'video')
+                            .reduce((sum: number, i: any) => sum + (i.durationMinutes || 0), 0) / 60).toFixed(1)),
+                    });
+                }
+                if (catsRes.data?.success) setCategories(catsRes.data.data || []);
+            } catch (error) {
+                console.error('Error fetching content:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchContent();
+    }, []);
 
     const filteredContent = filter === 'all'
         ? contentItems
-        : contentItems.filter(item => item.type === filter);
+        : contentItems.filter(item => item.type === filter || item.categoryId === filter);
+
+    if (loading) {
+        return (
+            <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        );
+    }
 
     return (
         <div className="p-6 space-y-8">
@@ -92,44 +65,24 @@ export default function ContentPage() {
                 </p>
             </div>
 
-            {/* Stats */}
+            {/* Stats — computed from real API data */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-xl">
-                    <div className="flex items-center gap-3">
-                        <Video className="w-8 h-8" />
-                        <div>
-                            <p className="text-sm opacity-90">الفيديوهات</p>
-                            <p className="text-3xl font-bold">48</p>
+                {[
+                    { icon: Video, label: 'الفيديوهات', value: stats.videos, from: 'from-blue-500', to: 'to-blue-600' },
+                    { icon: FileText, label: 'الملفات', value: stats.docs, from: 'from-purple-500', to: 'to-purple-600' },
+                    { icon: LinkIcon, label: 'الروابط', value: stats.links, from: 'from-green-500', to: 'to-green-600' },
+                    { icon: TrendingUp, label: 'ساعات المشاهدة', value: stats.hours, from: 'from-orange-500', to: 'to-orange-600' },
+                ].map((s, i) => (
+                    <div key={i} className={`bg-gradient-to-br ${s.from} ${s.to} text-white p-6 rounded-xl`}>
+                        <div className="flex items-center gap-3">
+                            <s.icon className="w-8 h-8" />
+                            <div>
+                                <p className="text-sm opacity-90">{s.label}</p>
+                                <p className="text-3xl font-bold">{s.value}</p>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-6 rounded-xl">
-                    <div className="flex items-center gap-3">
-                        <FileText className="w-8 h-8" />
-                        <div>
-                            <p className="text-sm opacity-90">الملفات</p>
-                            <p className="text-3xl font-bold">32</p>
-                        </div>
-                    </div>
-                </div>
-                <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-xl">
-                    <div className="flex items-center gap-3">
-                        <LinkIcon className="w-8 h-8" />
-                        <div>
-                            <p className="text-sm opacity-90">الروابط</p>
-                            <p className="text-3xl font-bold">15</p>
-                        </div>
-                    </div>
-                </div>
-                <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white p-6 rounded-xl">
-                    <div className="flex items-center gap-3">
-                        <TrendingUp className="w-8 h-8" />
-                        <div>
-                            <p className="text-sm opacity-90">ساعات المشاهدة</p>
-                            <p className="text-3xl font-bold">12.5</p>
-                        </div>
-                    </div>
-                </div>
+                ))}
             </div>
 
             {/* Filters */}
@@ -187,8 +140,19 @@ export default function ContentPage() {
 
             {/* Content Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredContent.map((item) => {
-                    const Icon = item.icon;
+                {filteredContent.map((item, idx) => {
+                    const fallbackIcons = {
+                        'video': Video,
+                        'document': FileText,
+                        'audio': Music,
+                        'link': LinkIcon
+                    };
+                    const Icon = item.icon || fallbackIcons[item.type as keyof typeof fallbackIcons] || FileText;
+                    const thumbnail = item.thumbnail || (item.type === 'video' ? '🎥' : item.type === 'document' ? '📄' : item.type === 'link' ? '🔗' : '📚');
+                    const views = item.views || 0;
+                    const likes = item.likes || 0;
+                    const progress = item.progress || 0;
+
                     return (
                         <Link
                             key={item.id}
@@ -198,7 +162,7 @@ export default function ContentPage() {
                             <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden border-2 border-gray-200 dark:border-gray-700 hover:border-primary transition-all hover:shadow-lg">
                                 {/* Thumbnail */}
                                 <div className="bg-gradient-to-br from-blue-500 to-purple-600 h-40 flex items-center justify-center text-6xl">
-                                    {item.thumbnail}
+                                    {thumbnail}
                                 </div>
 
                                 {/* Content */}
@@ -217,16 +181,16 @@ export default function ContentPage() {
                                     </div>
 
                                     {/* Progress Bar */}
-                                    {item.progress > 0 && (
+                                    {progress > 0 && (
                                         <div className="mb-3">
                                             <div className="flex items-center justify-between text-xs mb-1">
                                                 <span>التقدم</span>
-                                                <span>{item.progress}%</span>
+                                                <span>{progress}%</span>
                                             </div>
                                             <div className="w-full bg-gray-200 rounded-full h-2">
                                                 <div
                                                     className="bg-primary h-2 rounded-full transition-all"
-                                                    style={{ width: `${item.progress}%` }}
+                                                    style={{ width: `${progress}%` }}
                                                 />
                                             </div>
                                         </div>
@@ -237,11 +201,11 @@ export default function ContentPage() {
                                         <div className="flex items-center gap-3 text-sm text-muted-foreground">
                                             <span className="flex items-center gap-1">
                                                 <Play className="w-4 h-4" />
-                                                {item.views}
+                                                {views}
                                             </span>
                                             <span className="flex items-center gap-1">
                                                 <Heart className="w-4 h-4" />
-                                                {item.likes}
+                                                {likes}
                                             </span>
                                         </div>
                                         <div className="flex gap-2">

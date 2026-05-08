@@ -166,4 +166,25 @@ export class AnalyticsService {
       attendancePercentage,
     };
   }
+
+  async getGradeTrends(studentId: string, limit: number = 10) {
+    // Fetch recent grades ordered by creation date
+    const grades = await this.prisma.grade.findMany({
+      where: { studentId },
+      include: {
+        subject: true,
+      },
+      orderBy: { createdAt: 'asc' },
+      take: limit,
+    });
+
+    return grades.map(g => ({
+      date: g.createdAt.toISOString().split('T')[0],
+      subject: g.subject?.name || 'Unknown',
+      assignmentTitle: g.subject?.name || 'Unknown',
+      score: g.score,
+      maxScore: g.maxScore || 100,
+      percentage: Math.round((g.score / (g.maxScore || 100)) * 100),
+    }));
+  }
 }

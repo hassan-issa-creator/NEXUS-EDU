@@ -85,7 +85,7 @@ function normalizeApiRole(role: string | undefined): UserRole {
 }
 
 function canUseDemoAuth(): boolean {
-    return true; // FORCE ENABLE DEMO MODE FOR NOW
+    return false;
 }
 
 function getApiBaseUrl(): string | null {

@@ -7,8 +7,11 @@ import { PrismaService } from '../prisma.service';
 
 import { ExcelExportService } from './excel-export.service';
 import { ExcelExportController } from './excel-export.controller';
+import { EarlyInterventionService } from './early-intervention.service';
+import { EventsModule } from '../gateway/events.module';
 
 @Module({
+  imports: [EventsModule],
   controllers: [
     AnalyticsController,
     StudentAnalyticsController,
@@ -18,8 +21,9 @@ import { ExcelExportController } from './excel-export.controller';
     AnalyticsService,
     StudentAnalyticsService,
     ExcelExportService,
+    EarlyInterventionService,
     PrismaService,
   ],
-  exports: [AnalyticsService, StudentAnalyticsService, ExcelExportService],
+  exports: [AnalyticsService, StudentAnalyticsService, ExcelExportService, EarlyInterventionService],
 })
 export class AnalyticsModule {}

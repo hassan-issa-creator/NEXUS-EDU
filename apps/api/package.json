@@ -20,6 +20,9 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  },
   "dependencies": {
     "@nestjs/bullmq": "^11.0.2",
     "@nestjs/cache-manager": "^3.1.0",
@@ -55,9 +58,11 @@
     "nest-winston": "^1.10.2",
     "next": "16.1.6",
     "nodemailer": "^7.0.12",
+    "pdf-parse": "^1.1.1",
     "openai": "^6.15.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
+    "pdf-parse": "^2.4.5",
     "pdfkit": "^0.16.0",
     "pg": "^8.16.3",
     "reflect-metadata": "^0.2.2",

@@ -1,128 +1,118 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
+    Table, TableBody, TableCell, TableHead,
+    TableHeader, TableRow,
 } from '@/components/ui/table';
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
+    Dialog, DialogContent, DialogDescription,
+    DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+    Select, SelectContent, SelectItem,
+    SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Search, Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { apiClient } from '@/lib/api/client';
+
+interface UserData {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    phone?: string;
+}
 
 const ROLES = ['STUDENT', 'TEACHER', 'PARENT', 'ADMIN'] as const;
 
-// Mock Data
-const initialUsers = [
-    { id: '1', name: 'أحمد محمد', email: 'ahmed@school.com', role: 'STUDENT', phone: '0501234567' },
-    { id: '2', name: 'سارة علي', email: 'sara@school.com', role: 'TEACHER', phone: '0507654321' },
-    { id: '3', name: 'خالد عبدالله', email: 'khaled@school.com', role: 'PARENT', phone: '0555555555' },
-    { id: '4', name: 'مدير النظام', email: 'admin@school.com', role: 'ADMIN', phone: '0599999999' },
-    { id: '5', name: 'فاطمة حسن', email: 'fatima@school.com', role: 'STUDENT', phone: '0501112222' },
-];
-
 export default function UsersPage() {
     const { toast } = useToast();
-    const [users, setUsers] = useState(initialUsers);
+    const [users, setUsers] = useState<UserData[]>([]);
+    const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingUser, setEditingUser] = useState<any>(null);
+    const [editingUser, setEditingUser] = useState<UserData | null>(null);
     const [selectedRole, setSelectedRole] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const [formData, setFormData] = useState({
-        email: '',
-        name: '',
-        role: 'STUDENT',
-        phone: '',
-    });
+    const [formData, setFormData] = useState({ email: '', name: '', role: 'STUDENT', phone: '' });
+
+    const fetchUsers = async () => {
+        try {
+            const res = await apiClient.get('/users');
+            const data = res.data?.data || res.data?.users || res.data || [];
+            setUsers(Array.isArray(data) ? data : data.users || []);
+        } catch {
+            toast({ title: 'خطأ', description: 'فشل تحميل المستخدمين', variant: 'destructive' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => { fetchUsers(); }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
-
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        if (editingUser) {
-            setUsers(users.map(u => u.id === editingUser.id ? { ...u, ...formData } : u));
-            toast({ title: "تم بنجاح", description: "تم تحديث بيانات المستخدم" });
-        } else {
-            const newUser = { id: Math.random().toString(), ...formData };
-            setUsers([...users, newUser]);
-            toast({ title: "تم بنجاح", description: "تم إنشاء المستخدم الجديد" });
+        try {
+            if (editingUser) {
+                await apiClient.patch(`/users/${editingUser.id}`, formData);
+                toast({ title: 'تم بنجاح', description: 'تم تحديث بيانات المستخدم' });
+            } else {
+                await apiClient.post('/users', { ...formData, password: 'Welcome@123' });
+                toast({ title: 'تم بنجاح', description: 'تم إنشاء المستخدم (كلمة المرور: Welcome@123)' });
+            }
+            await fetchUsers();
+            setIsModalOpen(false);
+            resetForm();
+        } catch (err: any) {
+            toast({ title: 'خطأ', description: err.response?.data?.message || 'فشل حفظ المستخدم', variant: 'destructive' });
+        } finally {
+            setIsSubmitting(false);
         }
-
-        setIsSubmitting(false);
-        setIsModalOpen(false);
-        resetForm();
     };
 
     const resetForm = () => {
         setEditingUser(null);
-        setFormData({
-            email: '',
-            name: '',
-            role: 'STUDENT',
-            phone: '',
-        });
+        setFormData({ email: '', name: '', role: 'STUDENT', phone: '' });
     };
 
-    const handleEdit = (user: any) => {
+    const handleEdit = (user: UserData) => {
         setEditingUser(user);
-        setFormData({
-            email: user.email,
-            name: user.name,
-            role: user.role,
-            phone: user.phone,
-        });
+        setFormData({ email: user.email, name: user.name, role: user.role, phone: user.phone || '' });
         setIsModalOpen(true);
     };
 
-    const handleDelete = (id: string) => {
-        if (confirm('هل أنت متأكد من حذف هذا المستخدم؟')) {
-            setUsers(users.filter(u => u.id !== id));
-            toast({ title: "تم بنجاح", description: "تم حذف المستخدم" });
+    const handleDelete = async (id: string) => {
+        if (!confirm('هل أنت متأكد من حذف هذا المستخدم؟')) return;
+        try {
+            await apiClient.delete(`/users/${id}`);
+            setUsers(prev => prev.filter(u => u.id !== id));
+            toast({ title: 'تم بنجاح', description: 'تم حذف المستخدم' });
+        } catch {
+            toast({ title: 'خطأ', description: 'فشل حذف المستخدم', variant: 'destructive' });
         }
     };
 
     const filteredUsers = users.filter(user => {
-        const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            user.email.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesSearch = (user.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (user.email || '').toLowerCase().includes(searchQuery.toLowerCase());
         const matchesRole = selectedRole === 'all' || user.role === selectedRole;
         return matchesSearch && matchesRole;
     });
 
     const getRoleBadge = (role: string) => {
-        const variants: any = {
-            ADMIN: 'destructive',
-            TEACHER: 'secondary',
-            STUDENT: 'default',
-            PARENT: 'outline',
-        };
-        return <Badge variant={variants[role]}>{role}</Badge>;
+        const variants: any = { ADMIN: 'destructive', TEACHER: 'secondary', STUDENT: 'default', PARENT: 'outline' };
+        const labels: any = { ADMIN: 'مدير', TEACHER: 'معلم', STUDENT: 'طالب', PARENT: 'ولي أمر' };
+        return <Badge variant={variants[role] || 'secondary'}>{labels[role] || role}</Badge>;
     };
+
+
 
     return (
         <div className="space-y-6">

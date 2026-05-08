@@ -29,7 +29,7 @@ async function bootstrap() {
 
   // Enable CORS for frontend
   app.enableCors({
-    origin: frontendOrigins,
+    origin: true, // Allow all origins in development
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Authorization', 'Content-Type', 'Accept', 'X-Requested-With'],
@@ -39,8 +39,6 @@ async function bootstrap() {
 
   app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
   app.use(cookieParser());
-
-  // Advanced Helmet protection with Content Security Policy (CSP)
   app.use(helmet({
     contentSecurityPolicy: {
       directives: {
@@ -113,7 +111,7 @@ async function bootstrap() {
     logger.log('📚 Swagger documentation available at /api/docs');
   }
 
-  const port = process.env.PORT ?? 3001;
+  const port = process.env.PORT ?? 4000;
   await app.listen(port);
 
   logger.log(`🚀 Application is running on: ${await app.getUrl()}`);

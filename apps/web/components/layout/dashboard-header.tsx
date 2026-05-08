@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { EnhancedNotifications } from '@/components/dashboard/notifications-popover'
 import { GlobalSearch } from '@/components/search/global-search'
+import { XpBar } from '@/components/gamification/xp-bar'
 
 // Map routes to Arabic page titles
 const PAGE_TITLES: Record<string, string> = {
@@ -89,7 +90,14 @@ export function DashboardHeader({ title, onMenuClick }: DashboardHeaderProps) {
                 </h1>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-4">
+                {/* XP Bar (Students Only) */}
+                {pathname.includes('/student') && (
+                    <div className="hidden md:block">
+                        <XpBar />
+                    </div>
+                )}
+
                 {/* Global Search */}
                 <GlobalSearch />
 

@@ -25,6 +25,8 @@ const students = [
 export default function AttendancePage() {
     const { toast } = useToast()
     const [attendance, setAttendance] = useState(students)
+    const [isGeneratingQR, setIsGeneratingQR] = useState(false)
+    const [qrSession, setQrSession] = useState<any>(null)
 
     const updateStatus = (id: number, status: string) => {
         setAttendance(attendance.map(s => s.id === id ? { ...s, status } : s))
@@ -37,6 +39,26 @@ export default function AttendancePage() {
         })
     }
 
+    const handleGenerateQR = async () => {
+        setIsGeneratingQR(true)
+        try {
+            const { apiClient } = await import('@/lib/api-client')
+            const res = await apiClient.post('/attendance/qr/sessions', {
+                classId: 'cls_1',
+                subjectId: 'sub_1',
+                durationMinutes: 10
+            })
+            if (res.data?.success) {
+                setQrSession(res.data.data)
+            }
+        } catch (error) {
+            console.error('Failed to generate QR', error)
+            toast({ title: 'خطأ', description: 'لم نتمكن من إنشاء جلسة QR', variant: 'destructive' })
+        } finally {
+            setIsGeneratingQR(false)
+        }
+    }
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -45,18 +67,41 @@ export default function AttendancePage() {
                     <p className="text-muted-foreground">تسجيل الحضور والغياب اليومي</p>
                 </div>
                 <div className="flex gap-3">
-                    <Select defaultValue="10-a">
+                    <Select defaultValue="cls_1">
                         <SelectTrigger className="w-[180px]">
                             <SelectValue placeholder="اختر الفصل" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="10-a">الصف 10 - أ</SelectItem>
-                            <SelectItem value="11-b">الصف 11 - ب</SelectItem>
+                            <SelectItem value="cls_1">الصف 10 - أ</SelectItem>
+                            <SelectItem value="cls_2">الصف 11 - ب</SelectItem>
                         </SelectContent>
                     </Select>
+                    <Button variant="outline" onClick={handleGenerateQR} disabled={isGeneratingQR} className="border-primary text-primary hover:bg-primary/10">
+                        {isGeneratingQR ? 'جاري الإنشاء...' : 'إنشاء QR للحضور'}
+                    </Button>
                     <Button onClick={handleSave}>حفظ السجل</Button>
                 </div>
             </div>
+
+            {qrSession && (
+                <Card className="border-primary bg-primary/5">
+                    <CardHeader>
+                        <CardTitle className="text-center text-primary">امسح الرمز لتسجيل الحضور</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex flex-col items-center justify-center space-y-4 pb-8">
+                        <div className="bg-white p-4 rounded-xl shadow-sm">
+                            <img 
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${qrSession.qrCode}`} 
+                                alt="QR Code" 
+                                width={250} 
+                                height={250} 
+                            />
+                        </div>
+                        <p className="text-xl font-mono tracking-widest bg-white px-6 py-2 rounded-lg shadow-inner">{qrSession.qrCode}</p>
+                        <p className="text-sm text-muted-foreground">ينتهي الرمز في 10 دقائق</p>
+                    </CardContent>
+                </Card>
+            )}
 
             <Card>
                 <CardHeader>

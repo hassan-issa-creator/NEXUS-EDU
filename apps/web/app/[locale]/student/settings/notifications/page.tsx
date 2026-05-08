@@ -7,10 +7,13 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Bell, Mail, Smartphone, Globe, Save } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
+import { useToast } from '@/components/ui/use-toast';
+import { apiClient } from '@/lib/api/client';
 import { motion } from 'framer-motion';
 
 export default function NotificationSettingsPage() {
     const { user } = useAuth();
+    const { toast } = useToast();
     const [settings, setSettings] = useState({
         emailNotifications: true,
         webPushNotifications: true,
@@ -26,15 +29,15 @@ export default function NotificationSettingsPage() {
     const handleSave = async () => {
         setIsSaving(true);
         try {
-            // Simulated API call - In a real app, this would update the User model
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            alert('تم حفظ الإعدادات بنجاح!');
-        } catch (error) {
-            console.error('Failed to save settings', error);
+            await apiClient.patch('/users/me', { notificationPreferences: settings });
+            toast({ title: '✅ تم الحفظ', description: 'تم تحديث إعدادات التنبيهات بنجاح' });
+        } catch {
+            toast({ title: 'خطأ', description: 'فشل حفظ الإعدادات', variant: 'destructive' });
         } finally {
             setIsSaving(false);
         }
     };
+
 
     return (
         <div className="max-w-4xl mx-auto space-y-6 p-6">

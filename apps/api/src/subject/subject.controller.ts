@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  Request,
 } from '@nestjs/common';
 import { SubjectService } from './subject.service';
 import { CreateSubjectDto, UpdateSubjectDto } from './dto/create-subject.dto';
@@ -30,6 +31,22 @@ export class SubjectController {
   @Roles(Role.ADMIN, Role.TEACHER, Role.STUDENT)
   findAll() {
     return this.subjectService.findAll();
+  }
+
+  /** Student: returns subjects from their active enrollment */
+  @Get('my')
+  @Roles(Role.STUDENT)
+  findMySubjects(@Request() req: any) {
+    const studentId = req.user?.userId || req.user?.sub || req.user?.id;
+    return this.subjectService.findByStudent(studentId);
+  }
+
+  /** Teacher: returns subjects they teach */
+  @Get('teacher/my')
+  @Roles(Role.TEACHER)
+  findMyTeacherSubjects(@Request() req: any) {
+    const teacherId = req.user?.userId || req.user?.sub || req.user?.id;
+    return this.subjectService.findByTeacher(teacherId);
   }
 
   @Get(':id')

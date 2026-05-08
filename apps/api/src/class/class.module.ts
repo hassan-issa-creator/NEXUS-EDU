@@ -7,7 +7,10 @@ import { ClassSessionController } from './class-session.controller';
 import { ClassSessionAttendanceController } from './class-session-attendance.controller';
 import { ClassSessionService } from './class-session.service';
 
+import { GamificationModule } from '../gamification/gamification.module';
+
 @Module({
+  imports: [GamificationModule],
   controllers: [
     ClassController,
     ClassSessionController,

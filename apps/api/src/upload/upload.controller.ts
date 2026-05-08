@@ -20,6 +20,9 @@ import { Role } from '../auth/role.enum';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/roles.guard';
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const pdfParse = require('pdf-parse');
+
 @Controller('upload')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 export class UploadController {
@@ -36,14 +39,22 @@ export class UploadController {
       throw new BadRequestException('No file uploaded');
     }
 
-    const userId = req.user.sub || req.user.id;
+    const userId = req.user.userId;
+
+    // Upload to Supabase Storage
+    const { url, filename } = await this.uploadService.uploadToSupabase(
+      file.buffer,
+      file.originalname,
+      file.mimetype,
+    );
 
     const savedFile = await this.uploadService.saveFileMetadata(
-      file.filename,
+      filename,
       file.originalname,
       file.mimetype,
       file.size,
       userId,
+      url,
     );
 
     return {
@@ -68,18 +79,26 @@ export class UploadController {
       throw new BadRequestException('No files uploaded');
     }
 
-    const userId = req.user.sub || req.user.id;
+    const userId = req.user.userId;
 
     const savedFiles = await Promise.all(
-      files.map((file) =>
-        this.uploadService.saveFileMetadata(
-          file.filename,
+      files.map(async (file) => {
+        // Upload to Supabase Storage
+        const { url, filename } = await this.uploadService.uploadToSupabase(
+          file.buffer,
+          file.originalname,
+          file.mimetype,
+        );
+
+        return this.uploadService.saveFileMetadata(
+          filename,
           file.originalname,
           file.mimetype,
           file.size,
           userId,
-        ),
-      ),
+          url,
+        );
+      }),
     );
 
     return savedFiles.map((file: any) => ({
@@ -95,7 +114,7 @@ export class UploadController {
 
   @Get('my-files')
   async getMyFiles(@Request() req: any) {
-    const userId = req.user.sub || req.user.id;
+    const userId = req.user.userId;
     return this.uploadService.getUserFiles(userId);
   }
 
@@ -113,5 +132,24 @@ export class UploadController {
   async deleteFile(@Param('id') id: string) {
     await this.uploadService.deleteFile(id);
     return { message: 'File deleted successfully' };
+  }
+  @Post('pdf-to-text')
+  @Roles(Role.ADMIN, Role.TEACHER)
+  @UseInterceptors(FileInterceptor('file', multerConfig))
+  async extractPdfText(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No PDF file uploaded');
+    }
+
+    if (file.mimetype !== 'application/pdf') {
+      throw new BadRequestException('File must be a PDF');
+    }
+
+    try {
+      const data = await pdfParse(file.buffer);
+      return { success: true, text: data.text };
+    } catch (error) {
+      throw new BadRequestException('Failed to parse PDF text');
+    }
   }
 }

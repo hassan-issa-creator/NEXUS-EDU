@@ -2,11 +2,11 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { CacheModule } from '@nestjs/cache-manager';
+import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD } from '@nestjs/core';
 import { PrismaModule } from './core/database/prisma.module';
 import { AuthModule } from './features/auth/auth.module';
 import { CommonModule, CustomThrottlerGuard } from './common';
-// import { ClassModule } from './class/class.module';
 import { SubjectModule } from './subject/subject.module';
 import { UserModule } from './user/user.module';
 import { EnrollmentModule } from './enrollment/enrollment.module';
@@ -24,11 +24,9 @@ import { QRAttendanceModule } from './features/qr-attendance/qr-attendance.modul
 import { ParentPortalModule } from './features/parent-portal/parent-portal.module';
 import { AdminPortalModule } from './features/admin-portal/admin-portal.module';
 import { AttendanceModule } from './attendance/attendance.module';
-// Temporarily comment out to fix compilation errors
-// import { MillionAchieverModule } from './features/million-achiever/million-achiever.module';
 import { MillionSimpleModule } from './features/million-simple/million-simple.module';
 import { HealthModule } from './health/health.module';
-import { QueueModule } from './queue/queue.module'; // Disabled - requires Redis
+import { QueueModule } from './queue/queue.module';
 import { GamificationModule } from './gamification/gamification.module';
 import { ReportModule } from './report/report.module';
 import { NotificationModule } from './notifications/notification.module';
@@ -37,38 +35,30 @@ import { AiModule } from './features/ai/ai.module';
 import { ClassModule } from './class/class.module';
 import { PaymentModule } from './payment/payment.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { EventsModule } from './gateway/events.module';
+
+// New Modules
+import { TimetableModule } from './features/schedule/schedule.module';
+import { TeacherAutomationModule } from './features/teacher-automation/teacher-automation.module';
+import { AiContentGeneratorModule } from './features/ai-content-generator/ai-content-generator.module';
+import { MillionJourneyModule } from './features/million-journey/million-journey.module';
+import { MessagesModule } from './messages/messages.module';
+import { ProfileModule } from './profile/profile.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-    }),
-    PrismaModule, // Global database access
-    // Rate Limiting - 3 tiers for different protection levels
+    ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
+    PrismaModule,
     ThrottlerModule.forRoot([
-      {
-        name: 'short',
-        ttl: 1000, // 1 second
-        limit: 10, // 10 requests per second
-      },
-      {
-        name: 'medium',
-        ttl: 10000, // 10 seconds
-        limit: 50, // 50 requests per 10 seconds
-      },
-      {
-        name: 'long',
-        ttl: 60000, // 1 minute
-        limit: 200, // 200 requests per minute
-      },
+      { name: 'short',  ttl: 1000,  limit: 10  },
+      { name: 'medium', ttl: 10000, limit: 50  },
+      { name: 'long',   ttl: 60000, limit: 200 },
     ]),
     AuthModule,
     CommonModule,
-    CacheModule.register({
-      isGlobal: true,
-      ttl: 300000, // 5 minutes default TTL
-      max: 1000, // Maximum number of items in cache
-    }),
+    CacheModule.register({ isGlobal: true, ttl: 300000, max: 1000 }),
+    EventsModule,    // ← global real-time gateway
     ClassModule,
     SubjectModule,
     UserModule,
@@ -87,11 +77,9 @@ import { DashboardModule } from './dashboard/dashboard.module';
     ParentPortalModule,
     AdminPortalModule,
     AttendanceModule,
-    // Temporarily disabled to fix compilation errors
-    // MillionAchieverModule,
     MillionSimpleModule,
     HealthModule,
-    QueueModule, // Disabled - requires Redis
+    QueueModule,
     GamificationModule,
     ReportModule,
     NotificationModule,
@@ -99,13 +87,15 @@ import { DashboardModule } from './dashboard/dashboard.module';
     AiModule,
     PaymentModule,
     DashboardModule,
+    TimetableModule,
+    TeacherAutomationModule,
+    AiContentGeneratorModule,
+    MillionJourneyModule,
+    MessagesModule,
+    ProfileModule,
   ],
   providers: [
-    // Global throttler guard with role-based limits
-    {
-      provide: APP_GUARD,
-      useClass: CustomThrottlerGuard,
-    },
+    { provide: APP_GUARD, useClass: CustomThrottlerGuard },
   ],
 })
-export class AppModule { }
+export class AppModule {}

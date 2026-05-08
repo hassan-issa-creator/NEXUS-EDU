@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Optional } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import {
@@ -11,10 +7,18 @@ import {
   SubmitAssignmentDto,
   GradeSubmissionDto,
 } from './dto/assignment.dto';
+import { AutoGradingService } from './auto-grading.service';
+import { EventsGateway } from '../gateway/events.gateway';
+import { GamificationService } from '../gamification/gamification.service';
 
 @Injectable()
 export class AssignmentService {
-  constructor(private prisma: PrismaService) { }
+  constructor(
+    private prisma: PrismaService,
+    private autoGrading: AutoGradingService,
+    @Optional() private eventsGateway: EventsGateway,
+    @Optional() private gamification: GamificationService,
+  ) {}
 
   private async createAuditLog(params: {
     action: string;
@@ -89,6 +93,18 @@ export class AssignmentService {
         title: assignment.title,
       },
     });
+
+    // Emit real-time event to all students in the class
+    if (assignment && subject.classId) {
+      this.eventsGateway?.emitNewAssignment(subject.classId, {
+        id: assignment.id,
+        title: assignment.title,
+        subject: assignment.subject?.name,
+        dueDate: assignment.dueDate,
+        teacherName: assignment.teacher?.name,
+        createdAt: new Date().toISOString(),
+      });
+    }
 
     return assignment;
   }
@@ -165,6 +181,18 @@ export class AssignmentService {
                           where: { studentId },
                         },
                       },
+                    },
+                  },
+                },
+              },
+            },
+            subjects: {
+              include: {
+                assignments: {
+                  include: {
+                    subject: true,
+                    submissions: {
+                      where: { studentId },
                     },
                   },
                 },
@@ -370,6 +398,9 @@ export class AssignmentService {
           },
         });
 
+        // Trigger AI grading in the background
+        this.autoGrading.gradeWithAI(assignmentId, submission.id).catch(e => console.error('AI Grading Error:', e));
+
         return submission;
       });
     }
@@ -393,6 +424,20 @@ export class AssignmentService {
         title: assignment.title,
       },
     });
+
+    // Gamification: Reward XP for submission
+    if (this.gamification) {
+      let xpAward = 20;
+      let reason = 'تسليم الواجب';
+      if (assignment.dueDate && new Date() <= new Date(assignment.dueDate)) {
+        xpAward += 30; // Bonus for on-time submission
+        reason = 'تسليم الواجب في الوقت المحدد';
+      }
+      await this.gamification.awardXp(studentId, xpAward, reason, submission.id);
+    }
+
+    // Trigger AI grading in the background
+    this.autoGrading.gradeWithAI(assignmentId, submission.id).catch(e => console.error('AI Grading Error:', e));
 
     return submission;
   }
@@ -479,6 +524,19 @@ export class AssignmentService {
         score: data.score,
       },
     });
+
+    if (this.gamification) {
+      let gradeXp = 10;
+      if (data.score >= 90) gradeXp = 50;
+      else if (data.score >= 75) gradeXp = 30;
+      
+      await this.gamification.awardXp(
+        gradedSubmission.student.id,
+        gradeXp,
+        `الحصول على درجة ${data.score}% في الواجب`,
+        submission.id
+      );
+    }
 
     return gradedSubmission;
   }

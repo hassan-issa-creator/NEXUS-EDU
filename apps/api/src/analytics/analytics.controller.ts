@@ -31,4 +31,14 @@ export class AnalyticsController {
     // If we want to allow parents to view, we'd need more logic.
     return this.analyticsService.getStudentStats(req.user.userId);
   }
+
+  @Get('grade-trends')
+  @Roles(Role.STUDENT, Role.PARENT, Role.TEACHER)
+  getGradeTrends(@Query('studentId') studentId: string, @Query('limit') limit: string, @Request() req: any) {
+    const id = req.user.role === 'STUDENT' ? req.user.userId : studentId;
+    if (!id) {
+        throw new Error('Student ID is required');
+    }
+    return this.analyticsService.getGradeTrends(id, limit ? parseInt(limit, 10) : 10);
+  }
 }

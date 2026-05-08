@@ -322,6 +322,15 @@ export class DashboardService {
       take: 6,
     });
 
+    const earlyInterventionAlerts = await this.prisma.notification.findMany({
+      where: {
+        userId,
+        type: 'EARLY_INTERVENTION',
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    });
+
     const totalStudents = teacher.taughtClasses.reduce(
       (sum, classItem) => sum + classItem.students.length,
       0,
@@ -346,11 +355,15 @@ export class DashboardService {
     const classPerformance = teacher.taughtClasses.map((classItem) => {
       const classGrades = teacher.taughtSubjects
         .filter((subject) => subject.classId === classItem.id)
-        .flatMap((subject) => subject.grades);
+        .flatMap((subject) => subject.grades || []);
       const averageGrade =
         classGrades.length > 0
           ? classGrades.reduce(
-              (sum, grade) => sum + (Number(grade.grade) / Number(grade.maxScore)) * 100,
+              (sum, grade) => {
+                const max = Number(grade.maxScore) || 100;
+                const score = Number(grade.grade) || 0;
+                return sum + (score / max) * 100;
+              },
               0,
             ) / classGrades.length
           : 0;
@@ -358,9 +371,9 @@ export class DashboardService {
       return {
         id: classItem.id,
         name: classItem.name,
-        studentCount: classItem.students.length,
-        subjectCount: classItem.subjects.length,
-        averageGrade: this.round(averageGrade),
+        studentCount: classItem.students?.length || 0,
+        subjectCount: classItem.subjects?.length || 0,
+        averageGrade: this.round(averageGrade || 0),
       };
     });
 
@@ -398,6 +411,13 @@ export class DashboardService {
         late: recentAttendance.filter((entry) => entry.status === AttendanceStatus.LATE).length,
         absent: recentAttendance.filter((entry) => entry.status === AttendanceStatus.ABSENT).length,
       },
+      interventionAlerts: earlyInterventionAlerts.map(alert => ({
+        id: alert.id,
+        title: alert.title,
+        body: alert.body,
+        data: alert.data ? JSON.parse(alert.data) : null,
+        createdAt: alert.createdAt,
+      })),
     };
   }
 
@@ -520,6 +540,60 @@ export class DashboardService {
           detail: `${classes.reduce((sum, item) => sum + item.students.length, 0)} enrollments`,
         },
       ],
+    };
+  }
+
+  async getParentDashboard(userId: string) {
+    const parent = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        children: {
+          include: {
+            student: {
+              include: {
+                studentGrades: { include: { subject: true }, orderBy: { createdAt: 'desc' }, take: 5 },
+                attendance: { orderBy: { date: 'desc' }, take: 30 },
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!parent) throw new NotFoundException('Parent not found');
+
+    const childrenData = (parent.children as any[]).map((relation: any) => {
+      const student = relation.student;
+      const attendanceList = (student.attendance || []) as any[];
+      const presentCount = attendanceList.filter((a: any) => a.status === 'PRESENT').length;
+      const attendanceRate = attendanceList.length > 0 ? Math.round((presentCount / attendanceList.length) * 100) : 100;
+      
+      const gradesList = (student.studentGrades || [] as any[]).map((g: any) => ({
+        subject: g.subject?.name || 'Unknown',
+        score: g.score,
+        total: g.maxScore || 100
+      }));
+      
+      let gpa = '0.0';
+      if (gradesList.length > 0) {
+        const sum = gradesList.reduce((acc: number, g: any) => acc + (g.score / g.total) * 4.0, 0);
+        gpa = (sum / gradesList.length).toFixed(1);
+      }
+
+      return {
+        id: student.id,
+        name: student.name || student.firstName || 'طالب',
+        grade: 'عام',
+        avatar: '',
+        gpa,
+        attendance: attendanceRate,
+        nextExam: 'لا توجد اختبارات قريبة',
+        recentGrades: gradesList
+      };
+    });
+
+    return {
+      children: childrenData
     };
   }
 }

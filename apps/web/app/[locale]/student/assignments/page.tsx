@@ -33,8 +33,8 @@ export default function StudentAssignmentsPage() {
   useEffect(() => {
     const run = async () => {
       try {
-        const response = await apiClient.get<Assignment[]>('/assignments/student')
-        setAssignments(response.data ?? [])
+        const response = await apiClient.get<any>('/assignments/student')
+        setAssignments(response.data?.data ?? response.data ?? [])
       } catch (err) {
         console.error(err)
         setError('تعذر تحميل الواجبات الحالية.')

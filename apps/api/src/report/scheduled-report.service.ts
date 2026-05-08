@@ -48,6 +48,38 @@ export class ScheduledReportService {
       try {
         const reportData = await this.generateStudentStats(student.id);
 
+        let aiSummary = 'الطالب يحرز تقدماً جيداً هذا الأسبوع.';
+        const openaiKey = process.env.OPENAI_API_KEY;
+        if (openaiKey && openaiKey !== 'sk_placeholder') {
+          try {
+            const prompt = `أنت مستشار تعليمي. قم بكتابة فقرة واحدة باللغة العربية (بين 3 إلى 5 أسطر) تلخص أداء الطالب الأسبوعي بناءً على البيانات التالية لترسل لولي الأمر. اذكر نقاط القوة وما يحتاج لتحسين بشكل لطيف ومبسط:
+            الغياب: ${reportData.attendance.absent}، الحضور: ${reportData.attendance.present}، التأخير: ${reportData.attendance.late}.
+            الواجبات المتأخرة أو المعلقة: ${reportData.pendingAssignments}.
+            الدرجات الأخيرة: ${reportData.grades.map(g => `${g.name} (${g.subject}): ${g.score}/${g.max}`).join('، ')}.
+            `;
+            
+            const aiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${openaiKey}`
+              },
+              body: JSON.stringify({
+                model: "gpt-4o",
+                messages: [{ role: "user", content: prompt }],
+                max_tokens: 250,
+              })
+            });
+            
+            if (aiRes.ok) {
+              const aiData = await aiRes.json();
+              aiSummary = aiData.choices[0].message.content;
+            }
+          } catch (e) {
+            this.logger.error('Failed to generate AI summary for parent report', e);
+          }
+        }
+
         // Send to each parent
         for (const relation of student.parents) {
           if (relation.parent.email) {
@@ -59,6 +91,7 @@ export class ScheduledReportService {
               attendanceStats: reportData.attendance,
               recentGrades: reportData.grades,
               assignmentsPending: reportData.pendingAssignments,
+              aiSummary,
             };
 
             await this.emailService.sendEmail({

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { AssignmentController } from './assignment.controller';
 import { AssignmentService } from './assignment.service';
 import { AutoGradingService } from './auto-grading.service';
@@ -6,8 +7,11 @@ import { PrismaService } from '../prisma.service';
 
 import { AssignmentTemplateService } from './assignment-template.service';
 import { AssignmentTemplateController } from './assignment-template.controller';
+import { EventsModule } from '../gateway/events.module';
+import { GamificationModule } from '../gamification/gamification.module';
 
 @Module({
+  imports: [ConfigModule, EventsModule, GamificationModule],
   controllers: [AssignmentController, AssignmentTemplateController],
   providers: [
     AssignmentService,
@@ -18,3 +22,4 @@ import { AssignmentTemplateController } from './assignment-template.controller';
   exports: [AssignmentService, AutoGradingService, AssignmentTemplateService],
 })
 export class AssignmentModule {}
+

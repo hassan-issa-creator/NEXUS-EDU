@@ -1,28 +1,53 @@
-# Million Platform Deployment Script
-# This script helps you deploy the platform components.
+# ============================================
+# Nexus EDU — Windows PowerShell Deploy Script
+# Usage: .\deploy_all.ps1
+# ============================================
 
-Write-Host "🚀 Starting Million Platform Deployment Preparation..." -ForegroundColor Cyan
+Write-Host "🚀 Nexus EDU Production Build & Deploy" -ForegroundColor Cyan
+Write-Host "=======================================" -ForegroundColor Cyan
 
-# 1. Check for prerequisite tools
-$tools = @("vercel", "railway")
-foreach ($tool in $tools) {
-    if (!(Get-Command $tool -ErrorAction SilentlyContinue)) {
-        Write-Host "⚠️ Warning: $tool CLI is not installed or not in PATH." -ForegroundColor Yellow
-        Write-Host "Please install it using: npm install -g $tool"
-    }
+$ErrorActionPreference = "Stop"
+$root = Split-Path -Parent $MyInvocation.MyCommand.Path
+
+# ─── Check .env ───────────────────────────────────────────────
+if (-not (Test-Path "$root\.env")) {
+    Write-Host "❌ .env not found! Copy .env.production → .env and fill in values." -ForegroundColor Red
+    exit 1
 }
+Write-Host "✅ .env found" -ForegroundColor Green
 
-# 2. Frontend Deployment (Vercel)
-Write-Host "`n🌐 Deploying Frontend (apps/web)..." -ForegroundColor Green
-# cd apps/web
-# vercel --prod
-Write-Host "Action required: Run 'vercel login' then 'vercel --prod' in apps/web" -ForegroundColor Gray
+# ─── Build API ────────────────────────────────────────────────
+Write-Host "`n📦 Building API (NestJS)..." -ForegroundColor Yellow
+Set-Location "$root\apps\api"
+npm run build
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "❌ API build failed" -ForegroundColor Red
+    exit 1
+}
+Write-Host "✅ API build successful" -ForegroundColor Green
 
-# 3. Backend Deployment (Railway)
-Write-Host "`n⚙️ Deploying Backend (apps/api)..." -ForegroundColor Green
-# cd apps/api
-# railway link
-# railway up
-Write-Host "Action required: Run 'railway login' then 'railway up' in apps/api" -ForegroundColor Gray
+# ─── Build Web ────────────────────────────────────────────────
+Write-Host "`n📦 Building Frontend (Next.js)..." -ForegroundColor Yellow
+Set-Location "$root\apps\web"
+$env:NEXT_TELEMETRY_DISABLED = "1"
+npm run build
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "❌ Web build failed" -ForegroundColor Red
+    exit 1
+}
+Write-Host "✅ Web build successful" -ForegroundColor Green
 
-Write-Host "`n✅ Preparation complete. Follow the manual steps above to finalize deployment." -ForegroundColor Cyan
+# ─── Summary ──────────────────────────────────────────────────
+Set-Location $root
+Write-Host "`n========================================" -ForegroundColor Cyan
+Write-Host "✅ Build Complete!" -ForegroundColor Green
+Write-Host ""
+Write-Host "Next steps for deployment:" -ForegroundColor Yellow
+Write-Host "  1. Push code to GitHub:  git push origin main"
+Write-Host "  2. On VPS run:           bash deploy.sh"
+Write-Host "  3. Or use Vercel/Railway (see deployment_guide.md)"
+Write-Host ""
+Write-Host "🌐 Local preview (already running):" -ForegroundColor Cyan
+Write-Host "   Frontend: http://localhost:3000"
+Write-Host "   Backend:  http://localhost:4000"
+Write-Host "   Health:   http://localhost:4000/health"

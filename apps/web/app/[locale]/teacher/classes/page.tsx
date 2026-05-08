@@ -76,7 +76,9 @@ export default function TeacherClassesPage() {
                                     <UserCheck className="w-4 h-4 ml-2" />
                                     تحضير سريع
                                 </Button>
-                                <Button variant="outline" size="sm">
+                                <Button variant="outline" size="sm" onClick={() => {
+                                    alert('ميزة مراسلة الفصل قيد التطوير وسيتم تفعيلها قريباً!');
+                                }}>
                                     <Mail className="w-4 h-4 ml-2" />
                                     مراسلة الفصل
                                 </Button>

@@ -1,14 +1,14 @@
-import {
-  Injectable,
-  NotFoundException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Optional } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CreateGradeDto, UpdateGradeDto } from './dto/grade.dto';
+import { EventsGateway } from '../gateway/events.gateway';
 
 @Injectable()
 export class GradeService {
-  constructor(private prisma: PrismaService) { }
+  constructor(
+    private prisma: PrismaService,
+    @Optional() private eventsGateway: EventsGateway,
+  ) {}
 
   async create(data: CreateGradeDto, teacherId: string) {
     // Verify teacher teaches this subject
@@ -25,7 +25,7 @@ export class GradeService {
       throw new ForbiddenException('You do not teach this subject');
     }
 
-    return this.prisma.grade.create({
+    const grade = await this.prisma.grade.create({
       data: {
         score: data.score,
         grade: data.score,
@@ -33,28 +33,24 @@ export class GradeService {
         comments: data.comments,
         studentId: data.studentId,
         subjectId: data.subjectId,
-        // @ts-ignore
-        classId: subject.classId || 'default-class',
-
       },
       include: {
-        student: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        subject: {
-          select: {
-            id: true,
-            name: true,
-            code: true,
-          },
-        },
+        student: { select: { id: true, name: true, email: true } },
       },
     });
+
+    // Emit real-time grade update to the student
+    this.eventsGateway?.emitGradeUpdate(data.studentId, {
+      subjectName: subject.name,
+      score: grade.score,
+      maxScore: grade.maxScore,
+      comments: grade.comments,
+      createdAt: new Date().toISOString(),
+    });
+
+    return grade;
   }
+
 
   async findAll(filters: { subjectId?: string; studentId?: string } = {}) {
     return this.prisma.grade.findMany({

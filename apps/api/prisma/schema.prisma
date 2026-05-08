@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model School {
@@ -66,6 +67,17 @@ model User {
   achievements     UserAchievement[]
   refreshTokens    RefreshToken[]
   auditLogs        AuditLog[]
+  gameScores       GameScore[]
+  gameSessions     GameSession[]
+  readingProgress  ReadingProgress[]
+  automationRules  AutomationRule[]
+  qrSessions       QrSession[]
+  qrScans          QrScan[]
+  userMilestones   UserMilestone[]
+  generatedTemplates GeneratedTemplate[]
+  smartProfile     SmartStudentProfile?
+  skillMasteries   StudentSkillMastery[]
+  xpTransactions   XpTransaction[]
 
   @@index([role])
   @@index([isActive])
@@ -113,6 +125,8 @@ model Class {
   students      Enrollment[]
   subjects      Subject[]
   classSubjects ClassSubject[]
+  scheduleEvents ScheduleEvent[]
+  qrSessions     QrSession[]
 
   @@index([schoolId])
 }
@@ -134,6 +148,11 @@ model Subject {
   class         Class          @relation(fields: [classId], references: [id])
   teacher       User?          @relation("SubjectTeacher", fields: [teacherId], references: [id])
   classSubjects ClassSubject[]
+  games         Game[]
+  questionBanks QuestionBank[]
+  libraryItems  LibraryItem[]
+  scheduleEvents ScheduleEvent[]
+  skillNodes    SkillNode[]
 
   @@index([schoolId])
 }
@@ -466,7 +485,19 @@ model UserAchievement {
   achievement   Achievement @relation(fields: [achievementId], references: [id])
 
   @@unique([userId, achievementId])
+}
+
+model XpTransaction {
+  id        String   @id @default(uuid())
+  userId    String
+  amount    Int
+  reason    String
+  sourceId  String?  // Optional reference ID (e.g. assignment ID or attendance ID)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
+  @@index([createdAt])
 }
 
 model DailyChallenge {
@@ -503,4 +534,218 @@ enum NotificationType {
   ACHIEVEMENT
   REMINDER
   GRADE
+  EARLY_INTERVENTION
+}
+
+// --- NEW DOMAINS ---
+
+// 1. Educational Games
+model Game {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  url         String?
+  subjectId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  sessions    GameSession[]
+  scores      GameScore[]
+}
+
+model GameSession {
+  id        String   @id @default(uuid())
+  gameId    String
+  userId    String
+  startedAt DateTime @default(now())
+  endedAt   DateTime?
+  duration  Int?     // in seconds
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model GameScore {
+  id        String   @id @default(uuid())
+  gameId    String
+  userId    String
+  score     Float
+  createdAt DateTime @default(now())
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, userId])
+}
+
+// 2. Content Library
+model LibraryCategory {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  items       LibraryItem[]
+}
+
+model LibraryItem {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  type        String   // "BOOK", "VIDEO", "ARTICLE"
+  url         String
+  coverUrl    String?
+  categoryId  String
+  subjectId   String?
+  createdAt   DateTime @default(now())
+  category    LibraryCategory @relation(fields: [categoryId], references: [id])
+  subject     Subject? @relation(fields: [subjectId], references: [id])
+  progress    ReadingProgress[]
+}
+
+model ReadingProgress {
+  id        String   @id @default(uuid())
+  userId    String
+  itemId    String
+  progress  Float    @default(0) // percentage 0-100
+  lastReadAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item      LibraryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, itemId])
+}
+
+// 3. Student Schedule
+model ScheduleEvent {
+  id        String   @id @default(uuid())
+  classId   String
+  subjectId String
+  dayOfWeek Int      // 0 = Sunday, 1 = Monday...
+  startTime String   // e.g. "08:00"
+  endTime   String   // e.g. "08:45"
+  room      String?
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+}
+
+// 4. QR Attendance
+model QrSession {
+  id        String   @id @default(uuid())
+  classId   String
+  teacherId String
+  qrCode    String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  isActive  Boolean  @default(true)
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacher   User     @relation(fields: [teacherId], references: [id])
+  scans     QrScan[]
+}
+
+model QrScan {
+  id        String   @id @default(uuid())
+  sessionId String
+  studentId String
+  scannedAt DateTime @default(now())
+  status    String   // "VALID", "INVALID"
+  session   QrSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  student   User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, studentId])
+}
+
+// 5. Teacher Automation
+model AutomationRule {
+  id          String   @id @default(uuid())
+  teacherId   String
+  name        String
+  triggerType String   // "ABSENCE", "LOW_GRADE", "BEHAVIOR"
+  condition   Json     // e.g. { operator: ">=", value: 3 }
+  actionType  String   // "SEND_MESSAGE", "CREATE_TASK"
+  actionData  Json     // e.g. { template: "..." }
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  teacher     User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  logs        AutomationLog[]
+}
+
+model AutomationLog {
+  id        String   @id @default(uuid())
+  ruleId    String
+  targetId  String   // userId of student/parent
+  executedAt DateTime @default(now())
+  status    String   // "SUCCESS", "FAILED"
+  rule      AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+}
+
+// 6. Content Generator & AI
+model QuestionBank {
+  id          String   @id @default(uuid())
+  subjectId   String
+  topic       String
+  questions   Json     // Array of questions
+  createdAt   DateTime @default(now())
+  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+}
+
+model GeneratedTemplate {
+  id          String   @id @default(uuid())
+  teacherId   String
+  title       String
+  content     String
+  type        String   // "LESSON_PLAN", "QUIZ"
+  createdAt   DateTime @default(now())
+  teacher     User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+}
+
+// 7. Million Journey
+model JourneyMilestone {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  order       Int
+  xpRequired  Int
+  rewardType  String?  // "BADGE", "AVATAR"
+  rewardId    String?
+  userMilestones UserMilestone[]
+}
+
+model UserMilestone {
+  id          String   @id @default(uuid())
+  userId      String
+  milestoneId String
+  unlockedAt  DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  milestone   JourneyMilestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, milestoneId])
+}
+
+// 8. Smart Student Profile & Knowledge Map
+model SmartStudentProfile {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  learningStyle   String?  // VISUAL, LOGICAL, SOCIAL, etc.
+  strengthSubjects String[]
+  weakSubjects    String[]
+  performanceTrend String? // IMPROVING, STABLE, DECLINING
+  lastAnalyzedAt  DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SkillNode {
+  id          String   @id @default(uuid())
+  subjectId   String
+  name        String
+  description String?
+  masteries   StudentSkillMastery[]
+  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+}
+
+model StudentSkillMastery {
+  id          String   @id @default(uuid())
+  studentId   String
+  skillNodeId String
+  masteryLevel String  // MASTERED, IN_PROGRESS, NOT_STARTED
+  updatedAt   DateTime @updatedAt
+  student     User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  skillNode   SkillNode @relation(fields: [skillNodeId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, skillNodeId])
 }

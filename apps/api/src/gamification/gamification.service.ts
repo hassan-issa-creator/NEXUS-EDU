@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { EventsGateway } from '../gateway/events.gateway';
 
 export interface LeaderboardEntry {
   rank: number;
@@ -7,136 +8,116 @@ export interface LeaderboardEntry {
   name: string;
   avatar?: string;
   points: number;
-  badges: string[];
+  level: number;
+  levelName: string;
 }
-
-export interface Badge {
-  id: string;
-  name: string;
-  nameAr: string;
-  description: string;
-  descriptionAr: string;
-  icon: string;
-  requirement: string;
-  points: number;
-}
-
-const BADGES: Badge[] = [
-  {
-    id: 'first_quiz',
-    name: 'First Steps',
-    nameAr: 'الخطوات الأولى',
-    description: 'Complete your first quiz',
-    descriptionAr: 'أكمل أول اختبار',
-    icon: '🎯',
-    requirement: 'quiz_count >= 1',
-    points: 10,
-  },
-  {
-    id: 'perfect_score',
-    name: 'Perfect Score',
-    nameAr: 'العلامة الكاملة',
-    description: 'Get 100% on any quiz',
-    descriptionAr: 'احصل على 100% في أي اختبار',
-    icon: '💯',
-    requirement: 'perfect_score_count >= 1',
-    points: 50,
-  },
-  {
-    id: 'streak_7',
-    name: 'Week Warrior',
-    nameAr: 'محارب الأسبوع',
-    description: 'Login 7 days in a row',
-    descriptionAr: 'سجل دخول 7 أيام متتالية',
-    icon: '🔥',
-    requirement: 'streak >= 7',
-    points: 30,
-  },
-  {
-    id: 'top_10',
-    name: 'Rising Star',
-    nameAr: 'نجم صاعد',
-    description: 'Reach top 10 on leaderboard',
-    descriptionAr: 'وصول لأفضل 10 في لوحة الشرف',
-    icon: '⭐',
-    requirement: 'rank <= 10',
-    points: 100,
-  },
-  {
-    id: 'quiz_master',
-    name: 'Quiz Master',
-    nameAr: 'سيد الاختبارات',
-    description: 'Complete 50 quizzes',
-    descriptionAr: 'أكمل 50 اختبار',
-    icon: '🏆',
-    requirement: 'quiz_count >= 50',
-    points: 200,
-  },
-];
 
 @Injectable()
 export class GamificationService {
   private readonly logger = new Logger(GamificationService.name);
 
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventsGateway: EventsGateway,
+  ) {}
 
   /**
-   * Get available badges
+   * Awards XP to a user and updates their level if they crossed a threshold.
+   * Emits a real-time WebSocket event for the UI to show an animation.
    */
-  getBadges(): Badge[] {
-    return BADGES;
+  async awardXp(userId: string, amount: number, reason: string, sourceId?: string) {
+    try {
+      // 1. Create the transaction log
+      const transaction = await this.prisma.xpTransaction.create({
+        data: {
+          userId,
+          amount,
+          reason,
+          sourceId,
+        },
+      });
+
+      // 2. Increment totalXP for the user
+      const updatedUser = await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          totalXP: { increment: amount },
+        },
+        select: { id: true, totalXP: true, level: true },
+      });
+
+      // 3. Check for level up
+      const newLevel = this.calculateLevel(updatedUser.totalXP);
+      let leveledUp = false;
+
+      if (newLevel > updatedUser.level) {
+        await this.prisma.user.update({
+          where: { id: userId },
+          data: { level: newLevel },
+        });
+        leveledUp = true;
+        this.logger.log(`User ${userId} leveled up to ${newLevel}!`);
+      }
+
+      // 4. Emit real-time event to trigger UI animations
+      this.eventsGateway.server.to(`user:${userId}`).emit('gamification.xp_awarded', {
+        amount,
+        reason,
+        totalXP: updatedUser.totalXP,
+        newLevel: leveledUp ? newLevel : undefined,
+        levelName: this.getLevelName(leveledUp ? newLevel : updatedUser.level),
+      });
+
+      return { success: true, transaction, totalXP: updatedUser.totalXP, leveledUp };
+    } catch (error) {
+      this.logger.error(`Failed to award XP to user ${userId}:`, error);
+      return { success: false };
+    }
   }
 
   /**
    * Get leaderboard (top N students by points)
    */
   async getLeaderboard(
+    scope: 'national' | 'school' | 'classroom' = 'national',
+    entityId?: string,
     limit: number = 10,
-    _classId?: string,
   ): Promise<LeaderboardEntry[]> {
     try {
-      // In a real implementation with _classId, we would filter by enrollments
-      const profiles = await this.prisma.millionProfile.findMany({
-        orderBy: { totalPoints: 'desc' },
-        take: limit,
-        include: {
-          user: {
-            select: { name: true, avatar: true },
-          },
-        },
-      });
+      let whereClause: any = { role: 'STUDENT', isActive: true };
 
-      // Fetch badges for these users
-      const userIds = profiles.map(p => p.userId);
-      const userAchievements = await this.prisma.userAchievement.findMany({
-        where: {
-          userId: {
-            in: userIds,
-          },
-        },
-        include: {
-          achievement: {
-            select: {
-              key: true,
-            },
-          },
-        },
-      });
-
-      return profiles.map((p, index) => {
-        const badges = userAchievements
-          .filter((ub: any) => ub.userId === p.userId)
-          .map((ub: any) => ub.achievement.key);
-
-        return {
-          rank: index + 1,
-          userId: p.userId,
-          name: p.user.name || 'طالب', // Fallback for null name
-          avatar: p.user.avatar || undefined,
-          points: p.totalPoints,
-          badges,
+      if (scope === 'school' && entityId) {
+        whereClause.schoolId = entityId;
+      } else if (scope === 'classroom' && entityId) {
+        whereClause.enrollments = {
+          some: { classId: entityId }
         };
+      }
+
+      const students = await this.prisma.user.findMany({
+        where: whereClause,
+        orderBy: { totalXP: 'desc' },
+        take: limit,
+        select: {
+          id: true,
+          name: true,
+          firstName: true,
+          lastName: true,
+          avatar: true,
+          totalXP: true,
+          level: true,
+        },
       });
+
+      return students.map((s, index) => ({
+        rank: index + 1,
+        userId: s.id,
+        name: s.name || `${s.firstName || ''} ${s.lastName || ''}`.trim() || 'طالب',
+        avatar: s.avatar || undefined,
+        points: s.totalXP,
+        level: s.level,
+        levelName: this.getLevelName(s.level),
+      }));
     } catch (error) {
       this.logger.error('Failed to get leaderboard', error);
       throw error;
@@ -148,152 +129,53 @@ export class GamificationService {
    */
   async getUserRank(
     userId: string,
-  ): Promise<{ rank: number; points: number; badges: Badge[] }> {
-    const profile = await this.prisma.millionProfile.findUnique({
-      where: { userId },
+  ): Promise<{ rank: number; points: number; level: number; levelName: string; recentTransactions: any[] }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { totalXP: true, level: true },
     });
 
-    if (!profile) {
-      return { rank: 0, points: 0, badges: [] };
+    if (!user) {
+      return { rank: 0, points: 0, level: 1, levelName: 'Beginner (مبتدئ)', recentTransactions: [] };
     }
 
-    const rank = await this.prisma.millionProfile.count({
-      where: { totalPoints: { gt: profile.totalPoints } },
+    const rank = await this.prisma.user.count({
+      where: { role: 'STUDENT', isActive: true, totalXP: { gt: user.totalXP } },
     }) + 1;
 
-    const userAchievements = await this.prisma.userAchievement.findMany({
+    const recentTransactions = await this.prisma.xpTransaction.findMany({
       where: { userId },
-      include: {
-        achievement: {
-          select: {
-            key: true,
-          },
-        },
-      },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
     });
-
-    const earnedBadges = BADGES.filter(b =>
-      userAchievements.some((ua: any) => ua.achievement.key === b.id)
-    );
 
     return {
       rank,
-      points: profile.totalPoints,
-      badges: earnedBadges,
+      points: user.totalXP,
+      level: user.level,
+      levelName: this.getLevelName(user.level),
+      recentTransactions,
     };
   }
 
-  /**
-   * Award points to user
-   */
-  async awardPoints(userId: string, points: number, reason: string): Promise<void> {
-    this.logger.log(`Awarded ${points} points to user ${userId}: ${reason}`);
+  // Helper Methods
 
-    await this.prisma.millionProfile.upsert({
-      where: { userId },
-      update: { totalPoints: { increment: points } },
-      create: {
-        userId,
-        displayName: 'Student', // Default or fetch user name
-        totalPoints: points,
-      },
-    });
+  public calculateLevel(totalXP: number): number {
+    if (totalXP <= 500) return 1;
+    if (totalXP <= 1500) return 2;
+    if (totalXP <= 3000) return 3;
+    if (totalXP <= 5000) return 4;
+    return 5;
   }
 
-  /**
-   * Award badge to user
-   */
-  async awardBadge(userId: string, badgeId: string): Promise<Badge | null> {
-    const badge = BADGES.find((b) => b.id === badgeId);
-    if (!badge) return null;
-
-    try {
-      const achievement = await this.prisma.achievement.upsert({
-        where: { key: badge.id },
-        update: {
-          name: badge.name,
-          description: badge.description,
-          icon: badge.icon,
-          xpReward: badge.points,
-          category: 'gamification',
-        },
-        create: {
-          key: badge.id,
-          name: badge.name,
-          description: badge.description,
-          icon: badge.icon,
-          xpReward: badge.points,
-          category: 'gamification',
-        },
-      });
-
-      await this.prisma.userAchievement.upsert({
-        where: {
-          userId_achievementId: {
-            userId,
-            achievementId: achievement.id,
-          },
-        },
-        update: {},
-        create: {
-          userId,
-          achievementId: achievement.id,
-        },
-      });
-
-      this.logger.log(`Awarded badge ${badgeId} to user ${userId}`);
-      return badge;
-    } catch (error) {
-      this.logger.error(`Failed to award badge ${badgeId} to user ${userId}`, error);
-      return null;
-    }
-  }
-
-  /**
-   * Check and award eligible badges
-   */
-  async checkBadges(
-    userId: string,
-    stats: Record<string, number>,
-  ): Promise<Badge[]> {
-    const earnedBadges: Badge[] = [];
-
-    for (const badge of BADGES) {
-      const earned = this.checkBadgeRequirement(badge.requirement, stats);
-      if (earned) {
-        const awarded = await this.awardBadge(userId, badge.id);
-        if (awarded) earnedBadges.push(awarded);
-      }
-    }
-
-    return earnedBadges;
-  }
-
-  private checkBadgeRequirement(
-    requirement: string,
-    stats: Record<string, number>,
-  ): boolean {
-    // Simple requirement parser
-    const match = requirement.match(/(\w+)\s*(>=|<=|>|<|==)\s*(\d+)/);
-    if (!match) return false;
-
-    const [, field, operator, valueStr] = match;
-    const statValue = stats[field] || 0;
-    const requiredValue = parseInt(valueStr);
-
-    switch (operator) {
-      case '>=':
-        return statValue >= requiredValue;
-      case '<=':
-        return statValue <= requiredValue;
-      case '>':
-        return statValue > requiredValue;
-      case '<':
-        return statValue < requiredValue;
-      case '==':
-        return statValue === requiredValue;
-      default:
-        return false;
+  public getLevelName(level: number): string {
+    switch (level) {
+      case 1: return 'Beginner (مبتدئ)';
+      case 2: return 'Learner (متعلم)';
+      case 3: return 'Excellent (متفوق)';
+      case 4: return 'Star (نجم)';
+      case 5: return 'Nexus Champion (بطل نكسس)';
+      default: return 'Beginner (مبتدئ)';
     }
   }
 }

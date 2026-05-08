@@ -17,6 +17,7 @@ export interface EmailTemplateData {
     name: string;
   }[];
   assignmentsPending?: number;
+  aiSummary?: string;
 }
 
 export class EmailTemplates {
@@ -313,16 +314,10 @@ export class EmailTemplates {
                 : ''
             }
             
-            <p><strong>نقاط القوة:</strong></p>
-            <ul>
-              <li>أداء ممتاز في الرياضيات</li>
-              <li>مشاركة نشطة في الفصل</li>
-            </ul>
-            
-            <p><strong>نقاط التحسين:</strong></p>
-            <ul>
-              <li>تسليم الواجبات في الوقت المحدد</li>
-            </ul>
+            <div class="info-box">
+              <p><strong>🤖 تحليل الذكاء الاصطناعي لمستوى الطالب:</strong></p>
+              <p style="white-space: pre-wrap; font-size: 15px;">${data.aiSummary || 'جاري تجميع البيانات وتحليلها...'}</p>
+            </div>
             
             <a href="#" class="button">عرض التقرير الكامل</a>
             

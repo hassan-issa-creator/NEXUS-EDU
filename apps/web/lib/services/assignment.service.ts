@@ -84,7 +84,8 @@ class AssignmentServiceClass {
             throw new Error('Failed to fetch assignments');
         }
 
-        return response.json();
+        const json = await response.json();
+        return json.data ?? json;
     }
 
     async getMyAssignments(): Promise<Assignment[]> {
@@ -101,7 +102,8 @@ class AssignmentServiceClass {
             throw new Error('Failed to fetch my assignments');
         }
 
-        return response.json();
+        const json = await response.json();
+        return json.data ?? json;
     }
 
     async getStudentAssignments(): Promise<Assignment[]> {
@@ -118,7 +120,8 @@ class AssignmentServiceClass {
             throw new Error('Failed to fetch student assignments');
         }
 
-        return response.json();
+        const json = await response.json();
+        return json.data ?? json;
     }
 
     async getById(id: string): Promise<Assignment> {
@@ -135,7 +138,8 @@ class AssignmentServiceClass {
             throw new Error('Failed to fetch assignment');
         }
 
-        return response.json();
+        const json = await response.json();
+        return json.data ?? json;
     }
 
     async create(data: CreateAssignmentDto): Promise<Assignment> {
@@ -155,7 +159,8 @@ class AssignmentServiceClass {
             throw new Error(error.message || 'Failed to create assignment');
         }
 
-        return response.json();
+        const json = await response.json();
+        return json.data ?? json;
     }
 
     async update(id: string, data: Partial<CreateAssignmentDto>): Promise<Assignment> {
@@ -175,7 +180,8 @@ class AssignmentServiceClass {
             throw new Error(error.message || 'Failed to update assignment');
         }
 
-        return response.json();
+        const json = await response.json();
+        return json.data ?? json;
     }
 
     async delete(id: string): Promise<void> {
@@ -210,7 +216,8 @@ class AssignmentServiceClass {
             throw new Error(error.message || 'Failed to submit assignment');
         }
 
-        return response.json();
+        const json = await response.json();
+        return json.data ?? json;
     }
 
     async getSubmissions(assignmentId: string): Promise<Submission[]> {
@@ -227,7 +234,8 @@ class AssignmentServiceClass {
             throw new Error('Failed to fetch submissions');
         }
 
-        return response.json();
+        const json = await response.json();
+        return json.data ?? json;
     }
 
     async gradeSubmission(submissionId: string, data: GradeSubmissionDto): Promise<Submission> {
@@ -247,7 +255,8 @@ class AssignmentServiceClass {
             throw new Error(error.message || 'Failed to grade submission');
         }
 
-        return response.json();
+        const json = await response.json();
+        return json.data ?? json;
     }
 }
 

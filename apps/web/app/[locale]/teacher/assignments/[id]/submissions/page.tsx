@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { assignmentService, Submission } from '@/lib/services/assignment.service';
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
+import { assignmentService, Submission } from '@/lib/services/assignment.service';
 import { VoiceRecorder } from '@/components/assignments/voice-recorder';
 
 export default function SubmissionsPage() {
@@ -16,6 +17,7 @@ export default function SubmissionsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [gradeData, setGradeData] = useState({ score: 0, feedback: '' });
+  const [aiData, setAiData] = useState<{ strengths?: string[], weaknesses?: string[], isAiGenerated?: boolean } | null>(null);
 
   useEffect(() => {
     if (assignmentId) {
@@ -37,10 +39,27 @@ export default function SubmissionsPage() {
 
   const handleGrade = (submission: Submission) => {
     setSelectedSubmission(submission);
+    
+    let fbText = submission.feedback || '';
+    let aiMeta = null;
+    
+    try {
+      if (fbText.startsWith('{')) {
+        const parsed = JSON.parse(fbText);
+        fbText = parsed.text || '';
+        aiMeta = {
+          strengths: parsed.strengths,
+          weaknesses: parsed.weaknesses,
+          isAiGenerated: parsed.isAiGenerated
+        };
+      }
+    } catch (e) {}
+    
     setGradeData({
       score: submission.score || 0,
-      feedback: submission.feedback || '',
+      feedback: fbText,
     });
+    setAiData(aiMeta);
   };
 
   const submitGrade = async (e: React.FormEvent) => {
@@ -48,7 +67,15 @@ export default function SubmissionsPage() {
     if (!selectedSubmission) return;
 
     try {
-      await assignmentService.gradeSubmission(selectedSubmission.id, gradeData);
+      // Repackage AI Data if it existed so we don't lose it, or just send plain text if teacher edited heavily
+      const finalFeedback = aiData 
+        ? JSON.stringify({ text: gradeData.feedback, strengths: aiData.strengths, weaknesses: aiData.weaknesses, isAiGenerated: aiData.isAiGenerated })
+        : gradeData.feedback;
+
+      await assignmentService.gradeSubmission(selectedSubmission.id, {
+        score: gradeData.score,
+        feedback: finalFeedback
+      });
       setSelectedSubmission(null);
       fetchSubmissions();
     } catch (error: any) {
@@ -94,7 +121,9 @@ export default function SubmissionsPage() {
                 submissions.map((submission) => (
                   <tr key={submission.id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                      {submission.student?.name || submission.student?.email}
+                      <Link href={`/teacher/students/${submission.student?.id}`} className="hover:text-blue-600 dark:hover:text-blue-400 hover:underline">
+                        {submission.student?.name || submission.student?.email}
+                      </Link>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       {new Date(submission.submittedAt).toLocaleString()}
@@ -107,6 +136,11 @@ export default function SubmissionsPage() {
                       ) : (
                         <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
                           {tAssign('pending')}
+                        </span>
+                      )}
+                      {submission.feedback?.includes('isAiGenerated') && (
+                        <span className="ml-2 mr-2 px-2 inline-flex text-xs leading-5 font-bold rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+                          AI ✨
                         </span>
                       )}
                     </td>
@@ -159,6 +193,33 @@ export default function SubmissionsPage() {
                 </div>
               )}
             </div>
+
+            {aiData?.isAiGenerated && (
+              <div className="mb-4 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xl">✨</span>
+                  <h3 className="font-bold text-blue-800 dark:text-blue-300">التصحيح الذكي (AI)</h3>
+                </div>
+                
+                {aiData.strengths && aiData.strengths.length > 0 && (
+                  <div className="mb-2">
+                    <p className="text-sm font-semibold text-green-700 dark:text-green-400">نقاط القوة:</p>
+                    <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300">
+                      {aiData.strengths.map((s, i) => <li key={i}>{s}</li>)}
+                    </ul>
+                  </div>
+                )}
+                
+                {aiData.weaknesses && aiData.weaknesses.length > 0 && (
+                  <div>
+                    <p className="text-sm font-semibold text-orange-700 dark:text-orange-400">نقاط للتحسين:</p>
+                    <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300">
+                      {aiData.weaknesses.map((w, i) => <li key={i}>{w}</li>)}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
 
             <form onSubmit={submitGrade}>
               <div className="space-y-4">

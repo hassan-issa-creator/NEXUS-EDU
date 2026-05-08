@@ -54,38 +54,6 @@ export class ClassController {
   @Get('student/list')
   @Roles(Role.STUDENT)
   findStudentClasses(@Request() req: any) {
-    // Mock data for student classes
-    return [
-      {
-        id: '1',
-        name: 'Mathematics 101',
-        teacher: 'Dr. Ahmed',
-        schedule: 'Mon, Wed 10:00 AM',
-        room: 'Room 301',
-        nextClass: '2024-12-04T10:00:00Z',
-        isLive: true,
-        joinLink: '/student/classroom/math101',
-      },
-      {
-        id: '2',
-        name: 'Physics 101',
-        teacher: 'Prof. Sarah',
-        schedule: 'Tue, Thu 11:30 AM',
-        room: 'Lab 2',
-        nextClass: '2024-12-05T11:30:00Z',
-        isLive: false,
-        joinLink: '/student/classroom/phys101',
-      },
-      {
-        id: '3',
-        name: 'Chemistry 101',
-        teacher: 'Dr. Mohammed',
-        schedule: 'Mon, Wed 01:00 PM',
-        room: 'Lab 1',
-        nextClass: '2024-12-04T13:00:00Z',
-        isLive: false,
-        joinLink: '/student/classroom/chem101',
-      },
-    ];
+    return this.classService.findStudentClasses(req.user.sub || req.user.id);
   }
 }

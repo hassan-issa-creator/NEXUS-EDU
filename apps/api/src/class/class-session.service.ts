@@ -1,9 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 
+import { GamificationService } from '../gamification/gamification.service';
+
 @Injectable()
 export class ClassSessionService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private gamification: GamificationService,
+  ) {}
 
   async startSession(classId: string, teacherId: string, title?: string) {
     // End any active sessions for this class to ensure only one is live
@@ -70,7 +75,7 @@ export class ClassSessionService {
     date.setHours(0, 0, 0, 0); // Normalize to day
 
     // Upsert attendance
-    return this.prisma.attendance.upsert({
+    const attendance = await this.prisma.attendance.upsert({
       where: {
         studentId_classId_date: {
           studentId,
@@ -90,5 +95,17 @@ export class ClassSessionService {
         notes: `Joined Online Session: ${session.title}`,
       },
     });
+
+    // Gamification: Reward XP for attendance
+    if (this.gamification) {
+      await this.gamification.awardXp(
+        studentId,
+        10,
+        'حضور حصة',
+        attendance.id
+      );
+    }
+
+    return attendance;
   }
 }

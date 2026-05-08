@@ -1,51 +1,24 @@
-import { Controller, Get, Query, Param } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { Controller, Get, Query, Request, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { GamificationService } from './gamification.service';
 
-@ApiTags('Gamification')
 @Controller('gamification')
+@UseGuards(AuthGuard('jwt'))
 export class GamificationController {
   constructor(private readonly gamificationService: GamificationService) {}
 
   @Get('leaderboard')
-  @ApiOperation({ summary: 'Get leaderboard', description: 'جلب لوحة الشرف' })
-  @ApiQuery({
-    name: 'limit',
-    required: false,
-    type: Number,
-    description: 'Number of entries',
-  })
-  @ApiQuery({
-    name: 'classId',
-    required: false,
-    type: String,
-    description: 'Filter by class',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Leaderboard retrieved successfully',
-  })
   async getLeaderboard(
-    @Query('limit') limit?: number,
-    @Query('classId') classId?: string,
+    @Query('scope') scope: 'national' | 'school' | 'classroom' = 'national',
+    @Query('entityId') entityId?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.gamificationService.getLeaderboard(limit || 10, classId);
+    const parsedLimit = limit ? parseInt(limit, 10) : 10;
+    return this.gamificationService.getLeaderboard(scope, entityId, parsedLimit);
   }
 
-  @Get('badges')
-  @ApiOperation({
-    summary: 'Get all badges',
-    description: 'جلب جميع الشارات المتاحة',
-  })
-  @ApiResponse({ status: 200, description: 'Badges retrieved successfully' })
-  getBadges() {
-    return this.gamificationService.getBadges();
-  }
-
-  @Get('user/:userId/rank')
-  @ApiOperation({ summary: 'Get user rank', description: 'جلب ترتيب المستخدم' })
-  @ApiResponse({ status: 200, description: 'User rank retrieved successfully' })
-  async getUserRank(@Param('userId') userId: string) {
-    return this.gamificationService.getUserRank(userId);
+  @Get('rank')
+  async getUserRank(@Request() req: any) {
+    return this.gamificationService.getUserRank(req.user.userId);
   }
 }

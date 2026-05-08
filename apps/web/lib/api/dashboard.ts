@@ -99,6 +99,13 @@ export interface TeacherDashboardResponse {
     late: number
     absent: number
   }
+  interventionAlerts?: Array<{
+    id: string
+    title: string
+    body: string
+    data: any
+    createdAt: string
+  }>
 }
 
 export interface AdminDashboardResponse {
@@ -206,4 +213,27 @@ export const dashboardApi = {
     const response = await apiClient.get<AdminDashboardResponse>('/dashboard/admin')
     return response.data
   },
+  getParentDashboard: async (): Promise<any> => {
+    if (typeof window !== 'undefined' && localStorage.getItem('is_demo') === 'true') {
+        return {
+            children: [
+                {
+                    id: '1',
+                    name: 'أحمد علي (نسخة تجريبية)',
+                    grade: 'الصف العاشر',
+                    avatar: '/avatars/ahmed.png',
+                    gpa: '3.8',
+                    attendance: 95,
+                    nextExam: 'الرياضيات - الأحد القادم',
+                    recentGrades: [
+                        { subject: 'الرياضيات', score: 18, total: 20 },
+                        { subject: 'الفيزياء', score: 45, total: 50 },
+                    ]
+                }
+            ]
+        }
+    }
+    const response = await apiClient.get('/dashboard/parent')
+    return response.data
+  }
 }

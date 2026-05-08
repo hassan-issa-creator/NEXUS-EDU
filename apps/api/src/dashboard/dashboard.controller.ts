@@ -18,13 +18,24 @@ export class DashboardController {
 
   @Get('teacher')
   @Roles(Role.TEACHER)
-  getTeacherDashboard(@Request() req: any) {
-    return this.dashboardService.getTeacherDashboard(req.user.userId);
+  async getTeacherDashboard(@Request() req: any) {
+    try {
+      return await this.dashboardService.getTeacherDashboard(req.user.userId);
+    } catch (error) {
+      console.error('getTeacherDashboard Error:', error);
+      throw error;
+    }
   }
 
   @Get('admin')
   @Roles(Role.ADMIN)
   getAdminDashboard(@Request() req: any) {
     return this.dashboardService.getAdminDashboard(req.user.userId);
+  }
+
+  @Get('parent')
+  @Roles(Role.PARENT)
+  getParentDashboard(@Request() req: any) {
+    return this.dashboardService.getParentDashboard(req.user.userId);
   }
 }
