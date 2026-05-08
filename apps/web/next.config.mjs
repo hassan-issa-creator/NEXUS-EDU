@@ -5,12 +5,10 @@ const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
-    // Type errors are visible in logs but won't block the production build
+    // Suppress type errors during production build
     ignoreBuildErrors: true,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  // eslint key removed — not supported in Next.js 16 (use eslint.config.js)
 };
 
 export default withNextIntl(nextConfig);

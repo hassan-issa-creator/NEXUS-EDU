@@ -4,7 +4,7 @@ import {
     OnModuleDestroy,
     Logger,
 } from '@nestjs/common';
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient, Prisma, PrismaClientKnownRequestError } from '@prisma/client';
 
 @Injectable()
 export class PrismaService
@@ -32,9 +32,8 @@ export class PrismaService
 
         // Query logging في development
         if (process.env.NODE_ENV === 'development') {
-            (this as any).$on('query', (e: Prisma.QueryEvent) => {
+            (this as any).$on('query', (e: { query: string; duration: number }) => {
                 if (e.duration > 100) {
-                    // Log slow queries (>100ms)
                     this.logger.warn(
                         `Slow Query (${e.duration}ms): ${e.query.substring(0, 200)}...`,
                     );
@@ -93,7 +92,7 @@ export class PrismaService
 
                 // Only retry on connection errors
                 if (
-                    error instanceof Prisma.PrismaClientKnownRequestError &&
+                    error instanceof PrismaClientKnownRequestError &&
                     ['P1001', 'P1002', 'P1008', 'P1017'].includes(error.code)
                 ) {
                     this.logger.warn(
