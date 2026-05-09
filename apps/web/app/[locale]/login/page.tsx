@@ -158,8 +158,9 @@ export default function GlobalLoginSelectorPage() {
                             transition={{ type: 'spring', stiffness: 200 }}
                             className="flex items-center gap-3 mb-10"
                         >
-                            <div className="relative">
+                            <div className="relative flex items-center gap-2">
                                 <img src="/logo_new.jpeg" alt="Nexus EDU" className="w-12 h-12 rounded-[14px] object-cover shadow-md bg-white border border-border" />
+                                <img src="/second_logo.png" alt="Partner Logo" className="w-12 h-12 rounded-[14px] object-cover shadow-md bg-white border border-border" />
                                 <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
                             </div>
                             <div>
@@ -359,12 +360,20 @@ export default function GlobalLoginSelectorPage() {
                                 تواصل مع الدعم الفني
                             </a>
                         </p>
-                        <div className="flex items-center justify-center gap-4 text-[10px] text-slate-300 font-medium">
+                        <div className="flex items-center justify-center gap-4 text-[10px] text-slate-300 font-medium mb-4">
                             <span>🔒 SSL 256-bit</span>
                             <span>•</span>
                             <span>🇸🇦 خوادم سعودية</span>
                             <span>•</span>
                             <span>⚡ 99.9% Uptime</span>
+                        </div>
+                        <div className="flex flex-col items-center justify-center gap-1 border-t border-white/5 pt-4">
+                            <p className="text-center text-[11px] text-slate-400 font-medium">
+                                © 2026 Nexus EDU — جميع الحقوق محفوظة لمدارس الإخلاص الأهلية
+                            </p>
+                            <p className="text-center text-[10px] text-slate-500 font-medium tracking-wide">
+                                Developed by <span className="font-bold text-slate-400">Hassan Issa</span>
+                            </p>
                         </div>
                     </motion.div>
                 </div>

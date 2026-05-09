@@ -7,7 +7,7 @@ import {
     GraduationCap, BookOpen, Users, Award, ArrowLeft, CheckCircle,
     Star, PlayCircle, Brain, BarChart3, Trophy, ShieldCheck,
     ChevronLeft, ChevronRight, Sparkles, Zap, Globe, Menu, X,
-    Smartphone, QrCode, TrendingUp, Medal, Target
+    Smartphone, QrCode, TrendingUp, Medal, Target, Heart
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useTranslations } from 'next-intl'
@@ -17,9 +17,10 @@ import { AnimatedCounter } from '@/components/ui/animated-counter'
 
 // Hero Images for Carousel
 const heroImages = [
-    { src: '/images/hero-banner-new.png', alt: 'Nexus EDU - Smart Education' },
-    { src: '/images/ai-learning-new.png', alt: 'AI-Powered Learning' },
-    { src: '/images/stats-comparison-new.png', alt: 'Performance Analytics' },
+    { src: '/images/hero-1.png', alt: 'Nexus EDU - Vision' },
+    { src: '/images/hero-2.png', alt: 'Nexus EDU - Smart Education' },
+    { src: '/images/hero-3.png', alt: 'Performance Analytics' },
+    { src: '/images/hero-4.png', alt: 'Admin Overview' },
 ]
 
 // School partner logos (text-based for now)
@@ -84,7 +85,10 @@ export default function LandingPage() {
             <header className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-slate-200/60">
                 <div className="container mx-auto px-6 h-20 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <img src="/logo_new.jpeg" alt="Nexus EDU" className="w-10 h-10 rounded-[12px] object-cover" />
+                        <div className="flex items-center gap-1.5">
+                            <img src="/logo_new.jpeg" alt="Nexus EDU" className="w-10 h-10 rounded-[12px] object-cover" />
+                            <img src="/second_logo.png" alt="Partner Logo" className="w-10 h-10 rounded-[12px] object-cover bg-white" />
+                        </div>
                         <div className="flex flex-col">
                             <span className="text-2xl font-bold nexus-gradient-text">نِكْسُس</span>
                             <span className="text-[9px] font-bold tracking-[0.2em] text-slate-600 -mt-1 uppercase">Nexus EDU</span>
@@ -145,7 +149,10 @@ export default function LandingPage() {
                         >
                             <div className="flex items-center justify-between mb-8">
                                 <div className="flex items-center gap-2">
-                                    <img src="/logo_new.jpeg" alt="Nexus EDU" className="w-9 h-9 rounded-xl" />
+                                    <div className="flex items-center gap-1.5">
+                                        <img src="/logo_new.jpeg" alt="Nexus EDU" className="w-9 h-9 rounded-xl" />
+                                        <img src="/second_logo.png" alt="Partner Logo" className="w-9 h-9 rounded-xl bg-white" />
+                                    </div>
                                     <span className="font-bold text-lg nexus-gradient-text">نِكْسُس</span>
                                 </div>
                                 <button onClick={() => setIsMobileMenuOpen(false)} className="w-9 h-9 flex items-center justify-center rounded-xl glass-card">
@@ -864,7 +871,10 @@ export default function LandingPage() {
                     <div className="grid md:grid-cols-4 gap-12">
                         <div className="col-span-1 md:col-span-2">
                             <div className="flex items-center gap-3 mb-6">
-                                <img src="/logo_new.jpeg" alt="Nexus EDU" className="w-10 h-10 rounded-[12px] object-cover" />
+                                <div className="flex items-center gap-1.5">
+                                    <img src="/logo_new.jpeg" alt="Nexus EDU" className="w-10 h-10 rounded-[12px] object-cover" />
+                                    <img src="/second_logo.png" alt="Partner Logo" className="w-10 h-10 rounded-[12px] object-cover bg-white" />
+                                </div>
                                 <div className="flex flex-col">
                                     <span className="text-2xl font-bold nexus-gradient-text">نِكْسُس</span>
                                     <span className="text-[9px] font-bold tracking-[0.2em] text-slate-600 -mt-1 uppercase">Nexus EDU</span>
@@ -906,11 +916,19 @@ export default function LandingPage() {
                             </ul>
                         </div>
                     </div>
-                    <div className="border-t border-slate-200 mt-16 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-500">
-                        <span>{t('footer.copyright')}</span>
-                        <div className="flex items-center gap-2">
+                    <div className="border-t border-slate-200 mt-16 pt-8 flex flex-col items-center justify-between gap-6 text-sm text-slate-500 sm:flex-row">
+                        <div className="flex flex-col items-center sm:items-start gap-1.5">
+                            <span className="font-semibold text-slate-700">© 2026 Nexus EDU — جميع الحقوق محفوظة لمدارس الإخلاص الأهلية</span>
+                            <span className="text-xs font-medium text-slate-500 flex items-center gap-1.5 bg-slate-100/80 px-3 py-1.5 rounded-full border border-slate-200/60">
+                                Developed by 
+                                <span className="bg-gradient-to-r from-primary-600 to-indigo-600 bg-clip-text text-transparent font-black tracking-wide">
+                                    Hassan Issa
+                                </span>
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-full border border-slate-100">
                             <span>🇸🇦</span>
-                            <span>صُنع في المملكة العربية السعودية</span>
+                            <span className="font-medium text-slate-600">صُنع في المملكة العربية السعودية</span>
                         </div>
                     </div>
                 </div>

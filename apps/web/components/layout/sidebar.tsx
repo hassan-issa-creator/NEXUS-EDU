@@ -87,8 +87,13 @@ export function Sidebar({ role }: SidebarProps) {
                             exit={{ opacity: 0, x: 10 }}
                             className="flex items-center gap-2.5"
                         >
-                            <div className="w-8 h-8 rounded-[8px] overflow-hidden shadow-sm flex items-center justify-center bg-white border border-border">
-                                <img src="/logo_new.jpeg" alt="Logo" className="w-full h-full object-cover" />
+                            <div className="flex items-center gap-1">
+                                <div className="w-8 h-8 rounded-[8px] overflow-hidden shadow-sm flex items-center justify-center bg-white border border-border">
+                                    <img src="/logo_new.jpeg" alt="Logo" className="w-full h-full object-cover" />
+                                </div>
+                                <div className="w-8 h-8 rounded-[8px] overflow-hidden shadow-sm flex items-center justify-center bg-white border border-border">
+                                    <img src="/second_logo.png" alt="Partner Logo" className="w-full h-full object-cover" />
+                                </div>
                             </div>
                             <div>
                                 <h1 className="font-bold text-sm text-foreground leading-tight">نكسس</h1>
