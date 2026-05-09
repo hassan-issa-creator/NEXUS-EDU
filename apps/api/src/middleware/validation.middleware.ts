@@ -167,7 +167,7 @@ export const validateUUID = (paramName: string) => {
     const uuidRegex =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-    if (!uuidRegex.test(uuid)) {
+    if (!uuidRegex.test(uuid as string)) {
       return res.status(400).json({
         success: false,
         error: `Invalid ${paramName} format. Must be a valid UUID.`,

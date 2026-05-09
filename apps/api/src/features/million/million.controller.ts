@@ -158,7 +158,7 @@ export const getRoom = async (req: AuthRequest, res: Response) => {
   try {
     const { roomId } = req.params;
 
-    const room = await millionService.getRoom(roomId);
+    const room = await millionService.getRoom(roomId as string);
 
     res.status(200).json({
       success: true,
@@ -185,7 +185,7 @@ export const getLeaderboard = async (req: AuthRequest, res: Response) => {
   try {
     const { roomId } = req.params;
 
-    const leaderboard = await millionService.getLeaderboard(roomId);
+    const leaderboard = await millionService.getLeaderboard(roomId as string);
 
     res.status(200).json({
       success: true,
@@ -217,7 +217,7 @@ export const getUserHistory = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    const history = await millionService.getUserHistory(userId, limit);
+    const history = await millionService.getUserHistory(userId as string, limit);
 
     res.status(200).json({
       success: true,
@@ -240,7 +240,7 @@ export const getRoundQuestions = async (req: AuthRequest, res: Response) => {
   try {
     const { roundId } = req.params;
 
-    const questions = await millionService.getRoundQuestions(roundId);
+    const questions = await millionService.getRoundQuestions(roundId as string);
 
     res.status(200).json({
       success: true,
