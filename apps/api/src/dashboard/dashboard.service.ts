@@ -570,13 +570,13 @@ export class DashboardService {
       
       const gradesList = (student.studentGrades || [] as any[]).map((g: any) => ({
         subject: g.subject?.name || 'Unknown',
-        score: g.score,
+        score: g.grade,
         total: g.maxScore || 100
       }));
       
       let gpa = '0.0';
       if (gradesList.length > 0) {
-        const sum = gradesList.reduce((acc: number, g: any) => acc + (g.score / g.total) * 4.0, 0);
+        const sum = gradesList.reduce((acc: number, g: any) => acc + ((g.score || 0) / g.total) * 4.0, 0);
         gpa = (sum / gradesList.length).toFixed(1);
       }
 

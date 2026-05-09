@@ -8,7 +8,7 @@ import { useRealtimeNotifications, useRealtimeAttendance } from '@/lib/providers
 import {
   User, BookOpen, Clock, CreditCard, AlertCircle, CheckCircle2,
   Loader2, TrendingUp, TrendingDown, Zap, BrainCircuit, MessageSquare,
-  Calendar, Award, Shield, Bell, ChevronLeft, Sparkles, Star
+  Calendar, Award, Shield, Bell, ChevronLeft, Sparkles, Star, Trophy
 } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts'
 import Link from 'next/link'
