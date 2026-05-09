@@ -10,15 +10,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Mail, Lock, AlertCircle, Shield, GraduationCap, BookOpen, Users, UserCheck, Eye, Settings, CreditCard, Sparkles, CheckCircle, Fingerprint } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 
-const roleMapping: Record<string, { label: string; color: string; emailPrefix: string; gradient: string; icon: any; features: string[]; welcomeEmoji: string }> = {
-    student: { label: 'طالب', color: '#00D1B2', emailPrefix: 'student', gradient: 'from-teal-600 via-emerald-600 to-cyan-700', icon: GraduationCap, features: ['تتبع الدرجات والواجبات', 'تعلم ذكي بالـ AI', 'ترتيبك في لوحة المتصدرين'], welcomeEmoji: '🎓' },
-    teacher: { label: 'معلم', color: '#3B82F6', emailPrefix: 'teacher', gradient: 'from-blue-600 via-indigo-600 to-blue-800', icon: BookOpen, features: ['أتمتة التحضير والرصد', 'تحليل أداء الطلاب', 'أدوات تعليمية متقدمة'], welcomeEmoji: '📚' },
-    parent: { label: 'ولي أمر', color: '#F59E0B', emailPrefix: 'parent', gradient: 'from-amber-500 via-orange-500 to-amber-700', icon: Users, features: ['متابعة تقدم الأبناء', 'تقارير فورية ودقيقة', 'تواصل مباشر مع المدرسة'], welcomeEmoji: '👨‍👩‍👧' },
-    principal: { label: 'قائد المدرسة', color: '#8B5CF6', emailPrefix: 'principal', gradient: 'from-purple-600 via-violet-600 to-purple-800', icon: Shield, features: ['لوحة قيادة شاملة', 'تقارير أداء المعلمين', 'إحصائيات المدرسة الكاملة'], welcomeEmoji: '🏫' },
-    vice_principal: { label: 'الوكيل', color: '#EC4899', emailPrefix: 'vp', gradient: 'from-pink-600 via-rose-600 to-pink-800', icon: UserCheck, features: ['متابعة الحضور اليومي', 'شئون الطلاب', 'التقارير السلوكية'], welcomeEmoji: '📋' },
-    counselor: { label: 'الموجه الطلابي', color: '#14B8A6', emailPrefix: 'counselor', gradient: 'from-teal-600 via-cyan-600 to-teal-800', icon: Eye, features: ['متابعة الحالات النفسية', 'خطط الإرشاد الطلابي', 'تحليلات الرفاهية'], welcomeEmoji: '🤝' },
-    supervisor: { label: 'المشرف التربوي', color: '#6366F1', emailPrefix: 'supervisor', gradient: 'from-indigo-600 via-violet-600 to-indigo-800', icon: Eye, features: ['الزيارات الإشرافية', 'تقييم أداء المعلمين', 'خطط التحسين والتطوير'], welcomeEmoji: '👁️' },
-    admin: { label: 'الشئون الإدارية والمالية', color: '#F43F5E', emailPrefix: 'admin', gradient: 'from-rose-600 via-red-600 to-rose-800', icon: Settings, features: ['إدارة الحسابات المالية', 'شئون الموظفين', 'التقارير الإدارية'], welcomeEmoji: '💼' },
+const roleMapping: Record<string, { label: string; color: string; emailPrefix: string; gradient: string; icon: any; features: string[]; welcomeEmoji: string; bgImage: string }> = {
+    student: { label: 'طالب', color: '#00D1B2', emailPrefix: 'student', gradient: 'from-teal-900/80 via-emerald-900/80 to-cyan-900/80', icon: GraduationCap, features: ['تتبع الدرجات والواجبات', 'تعلم ذكي بالـ AI', 'ترتيبك في لوحة المتصدرين'], welcomeEmoji: '🎓', bgImage: '/images/auth/student.png' },
+    teacher: { label: 'معلم', color: '#3B82F6', emailPrefix: 'teacher', gradient: 'from-blue-900/80 via-indigo-900/80 to-blue-950/80', icon: BookOpen, features: ['أتمتة التحضير والرصد', 'تحليل أداء الطلاب', 'أدوات تعليمية متقدمة'], welcomeEmoji: '📚', bgImage: '/images/auth/teacher.png' },
+    parent: { label: 'ولي أمر', color: '#F59E0B', emailPrefix: 'parent', gradient: 'from-amber-900/80 via-orange-900/80 to-amber-950/80', icon: Users, features: ['متابعة تقدم الأبناء', 'تقارير فورية ودقيقة', 'تواصل مباشر مع المدرسة'], welcomeEmoji: '👨‍👩‍👧', bgImage: '/images/auth/parent.png' },
+    principal: { label: 'قائد المدرسة', color: '#8B5CF6', emailPrefix: 'principal', gradient: 'from-purple-900/80 via-violet-900/80 to-purple-950/80', icon: Shield, features: ['لوحة قيادة شاملة', 'تقارير أداء المعلمين', 'إحصائيات المدرسة الكاملة'], welcomeEmoji: '🏫', bgImage: '/images/auth/principal.png' },
+    vice_principal: { label: 'الوكيل', color: '#EC4899', emailPrefix: 'vp', gradient: 'from-pink-900/80 via-rose-900/80 to-pink-950/80', icon: UserCheck, features: ['متابعة الحضور اليومي', 'شئون الطلاب', 'التقارير السلوكية'], welcomeEmoji: '📋', bgImage: '/images/auth/vice_principal.png' },
+    counselor: { label: 'الموجه الطلابي', color: '#14B8A6', emailPrefix: 'counselor', gradient: 'from-teal-900/80 via-cyan-900/80 to-teal-950/80', icon: Eye, features: ['متابعة الحالات النفسية', 'خطط الإرشاد الطلابي', 'تحليلات الرفاهية'], welcomeEmoji: '🤝', bgImage: '/images/auth/counselor.png' },
+    supervisor: { label: 'المشرف التربوي', color: '#6366F1', emailPrefix: 'supervisor', gradient: 'from-indigo-900/80 via-violet-900/80 to-indigo-950/80', icon: Eye, features: ['الزيارات الإشرافية', 'تقييم أداء المعلمين', 'خطط التحسين والتطوير'], welcomeEmoji: '👁️', bgImage: '/images/auth/supervisor.png' },
+    admin: { label: 'الشئون الإدارية والمالية', color: '#F43F5E', emailPrefix: 'admin', gradient: 'from-rose-900/80 via-red-900/80 to-rose-950/80', icon: Settings, features: ['إدارة الحسابات المالية', 'شئون الموظفين', 'التقارير الإدارية'], welcomeEmoji: '💼', bgImage: '/images/auth/admin.png' },
 };
 
 export default function RoleLoginPage() {
@@ -78,8 +78,19 @@ export default function RoleLoginPage() {
     };
 
     const fillDemo = () => {
-        setEmail(`${roleConfig.emailPrefix}@nexus.edu`);
-        setPassword('password123');
+        // These must match the emails created by prisma/seed.ts
+        const demoEmails: Record<string, string> = {
+            teacher:        'arabic.teacher@nexusedu.sa',
+            student:        'student1@nexusedu.sa',
+            parent:         'parent1@nexusedu.sa',
+            principal:      'principal@nexusedu.sa',
+            vice_principal: 'vice.principal@nexusedu.sa',
+            counselor:      'counselor@nexusedu.sa',
+            supervisor:     'supervisor@nexusedu.sa',
+            admin:          'admin@nexusedu.sa',
+        };
+        setEmail(demoEmails[role] || `${roleConfig.emailPrefix}@nexusedu.sa`);
+        setPassword('123456'); // Password set in seed.ts
     };
 
     const RoleIcon = roleConfig.icon;
@@ -92,11 +103,17 @@ export default function RoleLoginPage() {
                 initial={{ x: 50, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ type: 'spring', stiffness: 150, damping: 20 }}
-                className={`hidden lg:flex lg:w-[45%] bg-gradient-to-br ${roleConfig.gradient} relative overflow-hidden flex-col justify-between p-12`}
+                className={`hidden lg:flex lg:w-[45%] bg-slate-900 relative overflow-hidden flex-col justify-between p-12`}
             >
+                {/* Background Image */}
+                <div className="absolute inset-0 z-0">
+                    <img src={roleConfig.bgImage} alt="" className="w-full h-full object-cover opacity-60 mix-blend-overlay" />
+                    <div className={`absolute inset-0 bg-gradient-to-br ${roleConfig.gradient} mix-blend-multiply`}></div>
+                </div>
+
                 {/* Decorative Elements */}
-                <div className="absolute inset-0 pointer-events-none">
-                    <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4 animate-float-slow morph-blob"></div>
+                <div className="absolute inset-0 pointer-events-none z-0">
+                    <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4 animate-float-slow morph-blob"></div>
                     <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-black/10 rounded-full blur-3xl translate-y-1/3 -translate-x-1/4 animate-float-delay morph-blob" style={{ animationDelay: '3s' }}></div>
                     
                     {/* Orbiting rings */}
@@ -132,7 +149,10 @@ export default function RoleLoginPage() {
                     className="relative z-10"
                 >
                     <div className="flex items-center gap-3 mb-2">
-                        <img src="/logo_new.jpeg" alt="Nexus EDU" className="w-12 h-12 rounded-2xl object-cover shadow-lg border-2 border-white/20" />
+                        <div className="flex items-center gap-2">
+                            <img src="/logo_new.jpeg" alt="Nexus EDU" className="w-12 h-12 rounded-2xl object-cover shadow-lg border-2 border-white/20" />
+                            <img src="/second_logo.png" alt="Partner Logo" className="w-12 h-12 rounded-2xl object-cover shadow-lg border-2 border-white/20 bg-white" />
+                        </div>
                         <div>
                             <span className="text-2xl font-bold text-white">نِكْسُس</span>
                             <span className="block text-[10px] font-bold tracking-[0.2em] text-white/60 uppercase">NEXUS EDU</span>
@@ -381,14 +401,19 @@ export default function RoleLoginPage() {
                     </motion.div>
 
                     {/* Footer */}
-                    <motion.p 
+                    <motion.div 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.8 }}
-                        className="text-center text-[12px] text-slate-400 mt-6 font-medium"
+                        className="mt-6 flex flex-col items-center justify-center gap-1"
                     >
-                        © 2026 Nexus EDU — جميع الحقوق محفوظة
-                    </motion.p>
+                        <p className="text-center text-[12px] text-slate-400 font-medium">
+                            © 2026 Nexus EDU — جميع الحقوق محفوظة لمدارس الإخلاص الأهلية
+                        </p>
+                        <p className="text-center text-[10px] text-slate-400/80 font-medium tracking-wide">
+                            Developed by <span className="font-bold text-slate-500">Hassan Issa</span>
+                        </p>
+                    </motion.div>
                 </motion.div>
             </div>
             <Toaster />

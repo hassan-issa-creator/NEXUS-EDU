@@ -44,25 +44,33 @@ export class AuthController {
         @Body() loginDto: LoginDto,
         @Res({ passthrough: true }) res: Response,
     ) {
+        const isProduction = process.env.NODE_ENV === 'production';
         try {
+            console.log(`🔐 [AuthController] Login attempt: ${loginDto.email}`);
             const result = await this.authService.login(loginDto);
 
             // Reset lock count on success
             await this.cacheManager.del(`lockout:${loginDto.email}`);
 
-            // Set refresh token in http-only cookie
+            // Set refresh token in http-only cookie.
+            // IMPORTANT: sameSite must be 'none' in production so the browser
+            // sends it across origins (frontend ≠ backend on Railway).
+            // 'strict' silently blocks cross-origin cookies.
             res.cookie('refresh_token', result.refresh_token, {
                 httpOnly: true,
-                secure: process.env.NODE_ENV === 'production', // Only HTTPS in production
-                sameSite: 'strict',
+                secure: isProduction,                        // HTTPS only in prod
+                sameSite: isProduction ? 'none' : 'lax',   // cross-origin in prod
                 maxAge: REFRESH_COOKIE_MAX_AGE,
                 path: '/',
             });
+
+            console.log(`✅ [AuthController] Login success: ${loginDto.email}`);
 
             // Don't send refresh token in response body
             const { refresh_token, ...responseData } = result;
             return responseData;
         } catch (error) {
+            console.error(`❌ [AuthController] Login failed for ${loginDto.email}:`, (error as any)?.message);
             if (error instanceof UnauthorizedException) {
                 const key = `lockout:${loginDto.email}`;
                 const attempts = (await this.cacheManager.get<number>(key)) || 0;
@@ -83,11 +91,12 @@ export class AuthController {
             throw new UnauthorizedException('Refresh token not found');
         }
 
+        const isProduction = process.env.NODE_ENV === 'production';
         const result = await this.authService.refreshAccessToken(refreshToken);
         res.cookie('refresh_token', result.refresh_token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            secure: isProduction,
+            sameSite: isProduction ? 'none' : 'lax',
             maxAge: REFRESH_COOKIE_MAX_AGE,
             path: '/',
         });
