@@ -14,6 +14,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, PieChart, Pie, Cell, LineChart, Line
 } from 'recharts'
+import { LiveSystemHealth } from './_components/LiveSystemHealth'
 
 function KpiCard({ title, value, icon: Icon, color, description, trend }: {
   title: string; value: string | number; icon: any; color: string; description: string; trend?: number
@@ -445,27 +446,36 @@ function AdminDashboardInner() {
         </motion.div>
       </div>
 
-      {/* Quick Actions Footer */}
-      <div className="pt-4 border-t border-gray-100 dark:border-white/5">
-        <h3 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-          <Zap className="w-4 h-4 text-amber-500" /> إجراءات سريعة
-        </h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { href: '/admin/users', icon: UserCheck, label: 'إدارة الحسابات', color: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-500/10', border: 'border-rose-100 dark:border-rose-500/20' },
-            { href: '/admin/classes', icon: School, label: 'الفصول الدراسية', color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-500/10', border: 'border-blue-100 dark:border-blue-500/20' },
-            { href: '/admin/permissions', icon: Shield, label: 'إدارة الصلاحيات', color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-500/10', border: 'border-purple-100 dark:border-purple-500/20' },
-            { href: '/admin/enrollments', icon: FileText, label: 'التقارير الشاملة', color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-500/10', border: 'border-amber-100 dark:border-amber-500/20' },
-          ].map((a, i) => (
-            <Link key={i} href={a.href}>
-              <motion.div whileHover={{ y: -3, scale: 1.02 }} className={`flex items-center gap-3 p-4 rounded-2xl border ${a.border} bg-white dark:bg-[#1e1e2d] hover:shadow-lg transition-all cursor-pointer`}>
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${a.bg}`}>
-                  <a.icon className={`w-5 h-5 ${a.color}`} />
-                </div>
-                <span className="font-bold text-sm text-gray-900 dark:text-white">{a.label}</span>
-              </motion.div>
-            </Link>
-          ))}
+      {/* Live System Health */}
+      <div className="grid md:grid-cols-2 gap-6 pt-2">
+        <LiveSystemHealth />
+
+        {/* Quick Stats Cards */}
+        <div className="bg-white dark:bg-[#1e1e2d] border border-gray-100 dark:border-white/5 rounded-[2rem] p-6 shadow-sm">
+          <h3 className="font-extrabold text-gray-900 dark:text-white text-sm mb-5 flex items-center gap-2">
+            <Zap className="w-4 h-4 text-amber-500" /> إجراءات سريعة
+          </h3>
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { href: '/admin/users', icon: UserCheck, label: 'إدارة الحسابات', color: '#ef4444', bg: '#ef444415' },
+              { href: '/admin/classes', icon: School, label: 'الفصول الدراسية', color: '#3b82f6', bg: '#3b82f615' },
+              { href: '/admin/permissions', icon: Shield, label: 'الصلاحيات', color: '#8b5cf6', bg: '#8b5cf615' },
+              { href: '/admin/enrollments', icon: FileText, label: 'التقارير', color: '#f59e0b', bg: '#f59e0b15' },
+              { href: '/admin/users?role=TEACHER', icon: GraduationCap, label: 'المعلمون', color: '#0d9488', bg: '#0d948815' },
+              { href: '/admin/users?role=STUDENT', icon: Users, label: 'الطلاب', color: '#06b6d4', bg: '#06b6d415' },
+            ].map((a, i) => (
+              <Link key={i} href={a.href}>
+                <motion.div whileHover={{ y: -2, scale: 1.02 }} transition={{ type: 'spring', stiffness: 300 }}
+                  className="flex items-center gap-3 p-4 rounded-2xl cursor-pointer border border-gray-100 dark:border-white/5 hover:shadow-md transition-all"
+                  style={{ backgroundColor: a.bg }}>
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-white dark:bg-[#12121a] shadow-sm">
+                    <a.icon className="w-4 h-4" style={{ color: a.color }} />
+                  </div>
+                  <span className="font-bold text-xs text-gray-900 dark:text-white leading-tight">{a.label}</span>
+                </motion.div>
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
     </div>
