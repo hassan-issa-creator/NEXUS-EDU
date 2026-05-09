@@ -208,9 +208,9 @@ export class AssignmentService {
         subjects?: Array<{ assignments: any[] }>;
       };
       const classSubjects =
-        enrollmentClass.classSubjects ??
-        enrollmentClass.subjects?.map((subject) => ({ subject })) ??
-        [];
+        enrollmentClass.classSubjects?.length > 0 
+          ? enrollmentClass.classSubjects
+          : (enrollmentClass.subjects?.map((subject) => ({ subject })) ?? []);
 
       return classSubjects.flatMap((classSubject) =>
         classSubject.subject.assignments.map((assignment) => ({

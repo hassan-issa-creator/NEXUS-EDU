@@ -236,6 +236,128 @@ async function main() {
   }
   console.log('✅ تم إنشاء واجبات تجريبية لجميع الطلاب');
 
+  // ==========================================
+  // 9. بيانات متقدمة (5 سيناريوهات مختلفة للطلاب)
+  // ==========================================
+  console.log('📅 جاري إنشاء سيناريوهات الحضور، الغياب، والدرجات المتكاملة...');
+  
+  // تعريف سيناريوهات الطلاب الـ 5
+  const studentScenarios = [
+    { email: 'student1@nexusedu.sa', type: 'EXCELLENT', submissionChance: 1.0, scoreRange: [9, 10], attendance: ['PRESENT', 'PRESENT', 'PRESENT'] },
+    { email: 'student2@nexusedu.sa', type: 'STRUGGLING', submissionChance: 0.3, scoreRange: [3, 6], attendance: ['ABSENT', 'LATE', 'PRESENT', 'ABSENT'] },
+    { email: 'student3@nexusedu.sa', type: 'AVERAGE', submissionChance: 0.8, scoreRange: [6, 8], attendance: ['PRESENT', 'PRESENT', 'ABSENT', 'PRESENT', 'LATE'] },
+    { email: 'student4@nexusedu.sa', type: 'DECLINING', submissionChance: 0.5, scoreRange: [4, 7], attendance: ['PRESENT', 'PRESENT', 'ABSENT', 'ABSENT'] },
+    { email: 'student5@nexusedu.sa', type: 'ACTIVE_AVERAGE', submissionChance: 1.0, scoreRange: [7, 8], attendance: ['PRESENT', 'PRESENT', 'PRESENT'] }
+  ];
+
+  const allAssignments = await prisma.assignment.findMany();
+
+  // توليد الحضور والغياب (14 يوم)
+  for (let i = 0; i < 14; i++) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    if (date.getDay() === 5 || date.getDay() === 6) continue;
+
+    for (const student of students) {
+      const scenario = studentScenarios.find(s => s.email === student.email) || studentScenarios[2];
+      
+      // التراجع الأكاديمي: إذا كان الطالب "DECLINING" وكان التاريخ حديثاً (آخر 5 أيام)، تزيد نسبة غيابه
+      let statuses = scenario.attendance;
+      if (scenario.type === 'DECLINING' && i < 5) {
+        statuses = ['ABSENT', 'LATE', 'ABSENT'];
+      }
+
+      const status = statuses[Math.floor(Math.random() * statuses.length)];
+      
+      await prisma.attendance.create({
+        data: {
+          studentId: student.id,
+          classId: classRoom.id,
+          date: date,
+          status: status as any,
+        }
+      });
+    }
+  }
+  console.log('✅ تم إنشاء سجلات الحضور والغياب بالسيناريوهات الـ 5');
+
+  // توليد التسليمات والدرجات
+  for (const assignment of allAssignments) {
+    // تحديد ما إذا كان الواجب حديثاً (للتراجع الأكاديمي)
+    const isRecentAssignment = Math.random() > 0.5;
+
+    for (const student of students) {
+      const scenario = studentScenarios.find(s => s.email === student.email) || studentScenarios[2];
+      
+      let chance = scenario.submissionChance;
+      let minScore = scenario.scoreRange[0];
+      let maxScore = scenario.scoreRange[1];
+
+      // سيناريو المتراجع: الدرجات تنخفض مؤخراً وفرصة التسليم تقل
+      if (scenario.type === 'DECLINING' && isRecentAssignment) {
+        chance = 0.2;
+        minScore = 2;
+        maxScore = 4;
+      }
+
+      if (Math.random() < chance) {
+        const score = Math.floor(Math.random() * (maxScore - minScore + 1)) + minScore;
+        
+        await prisma.submission.create({
+          data: {
+            assignmentId: assignment.id,
+            studentId: student.id,
+            content: 'مرفق إجابة الواجب كما هو مطلوب.',
+            score: score,
+            gradedAt: new Date(),
+            feedback: score >= 9 ? 'عمل ممتاز كالعادة!' : score >= 6 ? 'جيد، استمر.' : 'تحتاج لمراجعة الدروس بتركيز أكبر.',
+          }
+        });
+
+        await prisma.grade.create({
+          data: {
+            studentId: student.id,
+            subjectId: assignment.subjectId,
+            grade: score,
+            score: score,
+            maxScore: assignment.maxScore,
+            comments: 'تم رصد الدرجة بناءً على تسليم الواجب',
+          }
+        });
+      }
+    }
+  }
+  console.log('✅ تم إنشاء التسليمات والدرجات بالسيناريوهات الـ 5');
+
+  // ==========================================
+  // 10. الإشعارات والتكامل (Integration)
+  // ==========================================
+  console.log('🔔 جاري إنشاء الإشعارات المتكاملة...');
+  for (const student of students) {
+    const parentStudent = await prisma.parentStudent.findFirst({ where: { studentId: student.id }, include: { parent: true } });
+    
+    // إشعار ترحيبي للطالب
+    await prisma.notification.create({
+      data: { userId: student.id, title: 'مرحباً بك!', body: 'نتمنى لك فصلاً دراسياً متميزاً.', type: 'INFO' }
+    });
+
+    // إشعار لولي الأمر بانضمام ابنه
+    if (parentStudent) {
+      await prisma.notification.create({
+        data: { userId: parentStudent.parentId, title: 'تحديث الحساب', body: `تم تفعيل المتابعة الأكاديمية لابنك ${student.firstName}.`, type: 'INFO' }
+      });
+      
+      const scenario = studentScenarios.find(s => s.email === student.email);
+      // إرسال تنبيه خطر للآباء للطلاب المتعثرين أو المتراجعين
+      if (scenario && (scenario.type === 'STRUGGLING' || scenario.type === 'DECLINING')) {
+         await prisma.notification.create({
+          data: { userId: parentStudent.parentId, title: 'تنبيه أكاديمي هام', body: `لاحظنا تراجعاً في مستوى ${student.firstName} أو غيابات متكررة. يرجى المتابعة والدخول للتقرير.`, type: 'EARLY_INTERVENTION' }
+        });
+      }
+    }
+  }
+  console.log('✅ تم إرسال الإشعارات وتكامل بيانات الآباء والطلاب');
+
   console.log('\n🎉 تم إعادة تعيين البيانات بنجاح!');
   console.log('\n🔑 بيانات الدخول الجديدة (كلمة المرور: 123456)');
   console.log('--------------------------------------------------');
