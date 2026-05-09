@@ -1,8 +1,9 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { Heart, Users, AlertCircle, FileText, MessageSquare, Brain, Shield, Calendar, TrendingDown, BookOpen, Zap, HeartHandshake } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Heart, Users, AlertCircle, FileText, MessageSquare, Brain, Shield, Calendar, TrendingDown, BookOpen, Zap, HeartHandshake, Loader2, Sparkles } from 'lucide-react';
+import { apiClient } from '@/lib/api/client';
 
 const studentCases = [
     { id: 1, student: 'فهد خالد', grade: 'الصف 11 - أ', type: 'سلوكي', status: 'قيد المتابعة', urgency: 'high', desc: 'ميل للعزلة وانخفاض في التحصيل' },
@@ -12,10 +13,10 @@ const studentCases = [
 ];
 
 const weeklyStats = [
-    { label: 'حالات جديدة', value: 5, icon: AlertCircle, color: 'text-rose-600', bg: 'bg-rose-50' },
-    { label: 'جلسات إرشادية', value: 12, icon: MessageSquare, color: 'text-teal-600', bg: 'bg-teal-50' },
-    { label: 'حالات مغلقة', value: 3, icon: Heart, color: 'text-green-600', bg: 'bg-green-50' },
-    { label: 'إحالات خارجية', value: 1, icon: FileText, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { label: 'حالات جديدة', value: 5, icon: AlertCircle, color: '#ef4444', bg: 'bg-rose-50 dark:bg-rose-500/10' },
+    { label: 'جلسات إرشادية', value: 12, icon: MessageSquare, color: '#0d9488', bg: 'bg-teal-50 dark:bg-teal-500/10' },
+    { label: 'حالات مغلقة', value: 3, icon: Heart, color: '#10b981', bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
+    { label: 'إحالات خارجية', value: 1, icon: FileText, color: '#f59e0b', bg: 'bg-amber-50 dark:bg-amber-500/10' },
 ];
 
 const wellbeingMetrics = [
@@ -26,159 +27,211 @@ const wellbeingMetrics = [
 ];
 
 export default function CounselorDashboard() {
+    const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+    const [aiLoading, setAiLoading] = useState(false);
+
+    const generateAiAnalysis = async () => {
+        setAiLoading(true);
+        try {
+            const res = await apiClient.post('/ai/ask', {
+                question: `أنت مساعد موجه طلابي ذكي. قم بتحليل هذه الحالات بسرعة وأعطني توصية سريعة في فقرة واحدة: ${JSON.stringify(studentCases)}`
+            });
+            setAiAnalysis(res.data?.data?.answer || 'تم تحليل الحالات. يرجى التركيز على متابعة الحالات النفسية نظراً لأهميتها القصوى.');
+        } catch {
+            setAiAnalysis('تعذر الاتصال بالذكاء الاصطناعي حالياً.');
+        } finally {
+            setAiLoading(false);
+        }
+    };
+
     return (
-        <div className="min-h-screen bg-background p-8" dir="rtl">
-            {/* Header */}
-            <motion.div
-                initial={{ opacity: 0, y: -15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ type: 'spring', stiffness: 200 }}
-                className="flex justify-between items-center mb-8"
-            >
-                <div>
-                    <h1 className="text-[28px] font-extrabold text-foreground tracking-tight">بوابة التوجيه والإرشاد الطلابي</h1>
-                    <p className="text-[14px] text-muted-foreground mt-1">نظام Nexus EDU - متابعة الحالات النفسية والسلوكية والأكاديمية</p>
+        <div className="space-y-8 pb-12" dir="rtl">
+            {/* HERO */}
+            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
+                className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-teal-700 via-cyan-700 to-emerald-700 p-8 md:p-10 text-white shadow-[0_20px_50px_rgba(13,148,136,0.25)]">
+                <div className="absolute inset-0 pointer-events-none opacity-40">
+                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 50, repeat: Infinity, ease: 'linear' }}
+                        className="absolute -top-40 -right-40 w-[400px] h-[400px] bg-white/20 rounded-full blur-3xl" />
+                    <motion.div animate={{ rotate: -360 }} transition={{ duration: 60, repeat: Infinity, ease: 'linear' }}
+                        className="absolute -bottom-40 -left-20 w-[300px] h-[300px] bg-teal-400/20 rounded-full blur-3xl" />
                 </div>
-                <div className="flex gap-3">
-                    <Button className="bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl px-6 hover-lift">
-                        + حالة جديدة
-                    </Button>
-                    <div className="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center border-2 border-white shadow-md">
-                        <span className="text-teal-600 font-bold text-lg">م</span>
+                <div className="relative z-10 flex flex-col md:flex-row items-start justify-between gap-8">
+                    <div className="flex-1">
+                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 backdrop-blur-md mb-4">
+                            <Heart className="w-3 h-3 text-rose-300" />
+                            <span className="text-xs font-bold text-teal-100">بوابة الموجه الطلابي</span>
+                        </div>
+                        <h1 className="text-4xl md:text-5xl font-black mb-3 tracking-tight">الإرشاد والرفاهية 🤝</h1>
+                        <p className="text-white/80 text-sm md:text-base font-medium max-w-xl leading-relaxed mb-6">
+                            متابعة دقيقة للحالات النفسية والسلوكية، وقياس مستوى جودة الحياة المدرسية لحظة بلحظة.
+                        </p>
+                        <div className="flex gap-3">
+                            <button className="bg-white text-teal-700 hover:bg-teal-50 px-6 py-3 rounded-xl font-bold text-sm shadow-lg transition-colors">
+                                + إضافة حالة جديدة
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* AI Advisor */}
+                    <div className="w-full md:w-[350px] bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 shadow-xl relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-10 translate-x-10 group-hover:scale-150 transition-transform duration-700" />
+                        <div className="relative z-10">
+                            <h3 className="font-black text-white text-sm mb-4 flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
+                                    <Brain className="w-4 h-4 text-yellow-300" />
+                                </div>
+                                المستشار النفسي AI
+                            </h3>
+                            <div className="bg-black/20 rounded-xl p-4 border border-white/10 min-h-[100px] flex flex-col justify-center">
+                                {aiAnalysis ? (
+                                    <p className="text-[13px] text-white/90 leading-relaxed font-medium">{aiAnalysis}</p>
+                                ) : (
+                                    <button onClick={generateAiAnalysis} disabled={aiLoading}
+                                        className="w-full bg-teal-500 hover:bg-teal-600 py-3 rounded-xl text-xs font-bold transition-all shadow-lg disabled:opacity-50 flex items-center justify-center gap-2 text-white">
+                                        {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                                        {aiLoading ? 'جاري تقييم الحالات...' : 'تقييم ذكي للحالات المفتوحة'}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </motion.div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            {/* STATS */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
                 {weeklyStats.map((stat, i) => (
-                    <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                        className="bg-card p-6 rounded-[20px] shadow-sm border border-border flex justify-between items-start hover:-translate-y-1 transition-transform cursor-pointer">
-                        <div>
-                            <p className="text-[13px] font-medium text-muted-foreground mb-1">{stat.label}</p>
-                            <h3 className={`text-2xl font-extrabold ${stat.color}`}>{stat.value}</h3>
+                    <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
+                        whileHover={{ y: -4, scale: 1.02 }} className="bg-white dark:bg-[#1e1e2d] border border-gray-100 dark:border-white/5 rounded-[2rem] p-6 shadow-sm flex items-center gap-4 group relative overflow-hidden">
+                        <div className={`absolute -top-10 -right-10 w-32 h-32 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-3xl rounded-full`} style={{ backgroundColor: stat.color }} />
+                        <div className={`w-14 h-14 rounded-2xl ${stat.bg} flex items-center justify-center flex-shrink-0 relative z-10`}>
+                            <stat.icon className="w-6 h-6" style={{ color: stat.color }} />
                         </div>
-                        <div className={`p-3 rounded-2xl ${stat.bg}`}>
-                            <stat.icon className={`w-6 h-6 ${stat.color}`} />
+                        <div className="relative z-10">
+                            <p className="text-3xl font-black text-gray-900 dark:text-white leading-none mb-1">{stat.value}</p>
+                            <p className="text-xs font-bold text-gray-500 dark:text-gray-400">{stat.label}</p>
                         </div>
                     </motion.div>
                 ))}
             </div>
 
-            {/* Two Column Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                {/* Cases Table */}
-                <div className="lg:col-span-2 bg-card rounded-[20px] shadow-sm border border-border overflow-hidden">
-                    <div className="p-6 border-b border-border flex justify-between items-center">
-                        <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-                            <HeartHandshake className="w-5 h-5 text-teal-500" />
+            {/* TWO COLUMNS */}
+            <div className="grid lg:grid-cols-3 gap-6">
+                {/* CASES TABLE */}
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}
+                    className="lg:col-span-2 bg-white dark:bg-[#1e1e2d] border border-gray-100 dark:border-white/5 rounded-[2rem] shadow-sm overflow-hidden flex flex-col">
+                    <div className="px-6 py-5 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.02] flex justify-between items-center">
+                        <h3 className="font-extrabold text-gray-900 dark:text-white flex items-center gap-2 text-base">
+                            <div className="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center">
+                                <HeartHandshake className="w-4 h-4 text-rose-500" />
+                            </div>
                             سجل الحالات الطلابية
-                        </h2>
-                        <Button variant="outline" size="sm" className="text-sm font-bold rounded-xl">عرض الكل</Button>
+                        </h3>
+                        <button className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:text-teal-700">عرض الكل</button>
                     </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-right border-collapse">
+                    <div className="flex-1 overflow-x-auto">
+                        <table className="w-full text-right border-collapse min-w-[600px]">
                             <thead>
-                                <tr className="bg-muted/50/50 text-muted-foreground text-[13px] font-semibold border-b border-border">
-                                    <th className="p-4 pl-6">الطالب</th>
+                                <tr className="bg-white dark:bg-[#1e1e2d] text-gray-500 dark:text-gray-400 text-xs font-bold border-b border-gray-100 dark:border-white/5">
+                                    <th className="p-4 px-6">الطالب</th>
                                     <th className="p-4">الفصل</th>
                                     <th className="p-4">نوع الحالة</th>
                                     <th className="p-4">الوصف</th>
-                                    <th className="p-4 pr-6">الحالة</th>
+                                    <th className="p-4 px-6">حالة المتابعة</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {studentCases.map((c) => (
-                                    <motion.tr key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                                        className="border-b border-border/50 hover:bg-muted/50/50 transition-colors">
-                                        <td className="p-4 pl-6 font-bold text-foreground flex items-center gap-3">
-                                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                                                c.urgency === 'high' ? 'bg-rose-500' : c.urgency === 'medium' ? 'bg-amber-500' : 'bg-teal-500'
-                                            }`} />
-                                            {c.student}
+                                    <tr key={c.id} className="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
+                                        <td className="p-4 px-6">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-2.5 h-2.5 rounded-full shadow-sm ${
+                                                    c.urgency === 'high' ? 'bg-rose-500 shadow-rose-500/50' : c.urgency === 'medium' ? 'bg-amber-500 shadow-amber-500/50' : 'bg-teal-500 shadow-teal-500/50'
+                                                }`} />
+                                                <div>
+                                                    <p className="font-bold text-gray-900 dark:text-white group-hover:text-teal-600 transition-colors">{c.student}</p>
+                                                </div>
+                                            </div>
                                         </td>
-                                        <td className="p-4 text-muted-foreground text-sm">{c.grade}</td>
+                                        <td className="p-4 text-xs font-medium text-gray-500">{c.grade}</td>
                                         <td className="p-4">
-                                            <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                                                c.type === 'سلوكي' ? 'bg-rose-100 text-rose-600' :
-                                                c.type === 'أكاديمي' ? 'bg-blue-100 text-blue-600' :
-                                                c.type === 'نفسي' ? 'bg-purple-100 text-purple-600' : 'bg-teal-100 text-teal-600'
+                                            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black ${
+                                                c.type === 'سلوكي' ? 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 border border-rose-100 dark:border-rose-500/20' :
+                                                c.type === 'أكاديمي' ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20' :
+                                                c.type === 'نفسي' ? 'bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400 border border-purple-100 dark:border-purple-500/20' :
+                                                'bg-teal-50 text-teal-700 dark:bg-teal-500/10 dark:text-teal-400 border border-teal-100 dark:border-teal-500/20'
                                             }`}>{c.type}</span>
                                         </td>
-                                        <td className="p-4 text-muted-foreground text-sm max-w-[200px] truncate">{c.desc}</td>
-                                        <td className="p-4 pr-6">
-                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold ${
-                                                c.status === 'جديدة' ? 'bg-blue-100 text-blue-700' :
-                                                c.status === 'قيد المتابعة' ? 'bg-amber-100 text-amber-700' : 'bg-teal-100 text-teal-700'
+                                        <td className="p-4 text-xs text-gray-500 font-medium max-w-[200px] truncate">{c.desc}</td>
+                                        <td className="p-4 px-6">
+                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-black border ${
+                                                c.status === 'جديدة' ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/30' :
+                                                c.status === 'قيد المتابعة' ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30' :
+                                                'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/30'
                                             }`}>{c.status}</span>
                                         </td>
-                                    </motion.tr>
+                                    </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
-                </div>
+                </motion.div>
 
-                {/* Wellbeing Metrics */}
-                <div className="bg-card rounded-[20px] shadow-sm border border-border p-6">
-                    <h3 className="text-lg font-bold text-foreground mb-6 flex items-center gap-2">
-                        <Brain className="w-5 h-5 text-purple-500" />
+                {/* WELLBEING METRICS */}
+                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}
+                    className="bg-white dark:bg-[#1e1e2d] border border-gray-100 dark:border-white/5 rounded-[2rem] p-7 shadow-sm">
+                    <h3 className="font-extrabold text-gray-900 dark:text-white mb-6 flex items-center gap-2 text-base">
+                        <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center">
+                            <Brain className="w-4 h-4 text-indigo-500" />
+                        </div>
                         مؤشرات الصحة النفسية
                     </h3>
                     <div className="space-y-5">
                         {wellbeingMetrics.map((metric, i) => (
                             <div key={i}>
                                 <div className="flex justify-between mb-2">
-                                    <span className="text-sm font-medium text-muted-foreground">{metric.label}</span>
-                                    <span className={`text-sm font-bold ${metric.value >= 80 ? 'text-teal-600' : metric.value >= 70 ? 'text-amber-600' : 'text-rose-600'}`}>{metric.value}%</span>
+                                    <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{metric.label}</span>
+                                    <span className={`text-xs font-black ${metric.value >= 80 ? 'text-teal-600 dark:text-teal-400' : metric.value >= 70 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'}`}>{metric.value}%</span>
                                 </div>
-                                <div className="h-2.5 bg-muted rounded-full overflow-hidden">
-                                    <motion.div
-                                        initial={{ width: 0 }}
-                                        animate={{ width: `${metric.value}%` }}
-                                        transition={{ duration: 1, delay: i * 0.1 }}
-                                        className={`h-full rounded-full ${metric.value >= 80 ? 'bg-teal-500' : metric.value >= 70 ? 'bg-amber-500' : 'bg-rose-500'}`}
-                                    />
+                                <div className="h-2.5 bg-gray-100 dark:bg-[#12121a] rounded-full overflow-hidden">
+                                    <motion.div initial={{ width: 0 }} animate={{ width: `${metric.value}%` }} transition={{ duration: 1, delay: i * 0.1 }}
+                                        className={`h-full rounded-full relative ${metric.value >= 80 ? 'bg-teal-500' : metric.value >= 70 ? 'bg-amber-500' : 'bg-rose-500'}`}>
+                                        <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(255,255,255,0.2)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.2)_50%,rgba(255,255,255,0.2)_75%,transparent_75%,transparent)] bg-[length:1rem_1rem] opacity-50" />
+                                    </motion.div>
                                 </div>
                             </div>
                         ))}
                     </div>
 
-                    <div className="mt-6 p-4 bg-teal-50 rounded-2xl border border-teal-100">
-                        <h4 className="font-bold text-teal-800 text-sm mb-2 flex items-center gap-2">
-                            <TrendingDown className="w-4 h-4" />
-                            تنبيه NEXUS AI
+                    <div className="mt-8 p-5 bg-teal-50 dark:bg-teal-500/10 rounded-2xl border border-teal-100 dark:border-teal-500/20 relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-16 h-16 bg-teal-500/10 rounded-full blur-xl" />
+                        <h4 className="font-extrabold text-teal-800 dark:text-teal-400 text-sm mb-2 flex items-center gap-2">
+                            <TrendingDown className="w-4 h-4" /> تنبيه NEXUS AI
                         </h4>
-                        <p className="text-xs text-teal-700 leading-relaxed">
-                            مؤشر &quot;الدعم الأسري&quot; في تراجع مستمر للأسبوع الثالث. ننصح بتنظيم لقاء مع أولياء الأمور قريباً.
+                        <p className="text-xs font-medium text-teal-700 dark:text-teal-300 leading-relaxed">
+                            مؤشر &quot;الدعم الأسري&quot; في تراجع مستمر للأسبوع الثالث. الذكاء الاصطناعي يقترح تنظيم لقاء عاجل مع أولياء الأمور قبل نهاية الشهر.
                         </p>
                     </div>
-                </div>
+                </motion.div>
             </div>
 
-            {/* Quick Actions */}
+            {/* QUICK ACTIONS */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                    { icon: MessageSquare, label: 'جلسة إرشادية', desc: 'تسجيل جلسة مع طالب', color: 'from-teal-500 to-teal-700' },
-                    { icon: Shield, label: 'تقرير سلوكي', desc: 'توثيق ملاحظة سلوكية', color: 'from-rose-500 to-rose-700' },
-                    { icon: BookOpen, label: 'خطة تحسين', desc: 'وضع خطة تحسين أكاديمي', color: 'from-blue-500 to-blue-700' },
-                    { icon: Zap, label: 'إحالة خارجية', desc: 'إحالة للجهات المختصة', color: 'from-purple-500 to-purple-700' },
+                    { icon: MessageSquare, label: 'جلسة إرشادية', desc: 'تسجيل جلسة مع طالب', color: 'from-teal-500 to-teal-700', shadow: 'shadow-teal-500/30' },
+                    { icon: Shield, label: 'تقرير سلوكي', desc: 'توثيق ملاحظة سلوكية', color: 'from-rose-500 to-rose-700', shadow: 'shadow-rose-500/30' },
+                    { icon: BookOpen, label: 'خطة تحسين', desc: 'وضع خطة تحسين أكاديمي', color: 'from-blue-500 to-blue-700', shadow: 'shadow-blue-500/30' },
+                    { icon: Zap, label: 'إحالة خارجية', desc: 'إحالة للجهات المختصة', color: 'from-purple-500 to-purple-700', shadow: 'shadow-purple-500/30' },
                 ].map((action, i) => (
-                    <motion.div
-                        key={i}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 + i * 0.05 }}
-                        whileHover={{ scale: 1.03, y: -2 }}
-                        className={`relative overflow-hidden rounded-2xl p-5 cursor-pointer shadow-lg bg-gradient-to-br ${action.color} group`}
-                    >
-                        <div className="absolute top-0 left-0 w-20 h-20 bg-card/10 rounded-full -translate-x-6 -translate-y-6 group-hover:scale-150 transition-transform duration-500" />
+                    <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.05 }}
+                        whileHover={{ scale: 1.03, y: -2 }} className={`relative overflow-hidden rounded-[2rem] p-6 cursor-pointer shadow-lg bg-gradient-to-br ${action.color} group ${action.shadow}`}>
+                        <div className="absolute top-0 left-0 w-24 h-24 bg-white/10 rounded-full -translate-x-6 -translate-y-6 group-hover:scale-150 transition-transform duration-700" />
                         <div className="relative z-10">
-                            <div className="w-10 h-10 rounded-xl bg-card/20 flex items-center justify-center mb-3">
-                                <action.icon className="w-5 h-5 text-white" />
+                            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center mb-4 backdrop-blur-sm border border-white/20 shadow-inner">
+                                <action.icon className="w-6 h-6 text-white" />
                             </div>
-                            <h4 className="font-bold text-white text-sm">{action.label}</h4>
-                            <p className="text-white/70 text-xs mt-1">{action.desc}</p>
+                            <h4 className="font-black text-white text-base mb-1">{action.label}</h4>
+                            <p className="text-white/70 text-xs font-medium">{action.desc}</p>
                         </div>
                     </motion.div>
                 ))}

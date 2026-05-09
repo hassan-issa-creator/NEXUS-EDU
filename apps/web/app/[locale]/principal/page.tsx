@@ -15,41 +15,51 @@ import {
   Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell
 } from 'recharts';
 
-function KpiCard({ label, value, icon: Icon, color, trend, trendLabel }: {
-  label: string; value: string | number; icon: any; color: string; trend?: number; trendLabel?: string
+function KpiCard({ title, value, icon: Icon, color, description, trend }: {
+  title: string; value: string | number; icon: any; color: string; description: string; trend?: number
 }) {
   const isUp = (trend ?? 0) >= 0;
   return (
-    <motion.div whileHover={{ y: -3 }}
-      className="bg-card border border-border rounded-2xl p-5 relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-full h-1 rounded-t-2xl" style={{ background: color }} />
-      <div className="flex items-start justify-between mb-3">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${color}18` }}>
-          <Icon className="w-5 h-5" style={{ color }} />
+    <motion.div whileHover={{ y: -4, scale: 1.01 }} transition={{ type: "spring", stiffness: 300 }}
+      className="bg-white/80 dark:bg-[#1e1e2d]/80 backdrop-blur-xl border border-gray-100 dark:border-white/5 rounded-3xl p-6 relative overflow-hidden group shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)]">
+      {/* Premium Glow Effect */}
+      <div className="absolute -top-10 -right-10 w-32 h-32 opacity-0 group-hover:opacity-30 transition-opacity duration-500 blur-3xl rounded-full"
+        style={{ backgroundColor: color }} />
+      
+      <div className="relative z-10">
+        <div className="flex items-center justify-between mb-5">
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner relative overflow-hidden" 
+               style={{ backgroundColor: `${color}15`, border: `1px solid ${color}30` }}>
+            <Icon className="w-6 h-6 z-10" style={{ color }} />
+          </div>
+          {trend !== undefined && (
+            <div className={`px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${isUp ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10' : 'bg-rose-50 text-rose-600 dark:bg-rose-500/10'}`}>
+              {isUp ? <TrendingUp className="w-3 h-3" /> : <TrendingUp className="w-3 h-3 rotate-180" />}
+              {Math.abs(trend)}%
+            </div>
+          )}
         </div>
-        {trend !== undefined && (
-          <span className={`text-xs font-bold flex items-center gap-0.5 ${isUp ? 'text-emerald-600' : 'text-rose-600'}`}>
-            {isUp ? '↑' : '↓'} {Math.abs(trend)}%
-          </span>
-        )}
+        <p className="text-3xl font-black text-gray-900 dark:text-white tracking-tight mb-1">{value}</p>
+        <p className="text-sm font-bold text-gray-500 dark:text-gray-400">{title}</p>
+        <div className="w-full h-[1px] bg-gradient-to-r from-gray-200 to-transparent dark:from-white/10 my-3" />
+        <p className="text-[11px] text-gray-400 dark:text-gray-500 font-medium">{description}</p>
       </div>
-      <p className="text-2xl font-extrabold text-foreground">{value}</p>
-      <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
-      {trendLabel && <p className="text-[10px] text-muted-foreground/60 mt-0.5">{trendLabel}</p>}
     </motion.div>
   );
 }
 
 function AlertRow({ type, text, time }: { type: string; text: string; time: string }) {
   const colors: Record<string, string> = { urgent: '#ef4444', warning: '#f59e0b', success: '#22c55e', info: '#3b82f6' };
+  const c = colors[type] || '#6b7280';
   return (
-    <div className="flex items-start gap-3 px-5 py-3 hover:bg-muted/40 transition-colors">
-      <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: colors[type] || '#6b7280' }} />
-      <div className="flex-1">
-        <p className="text-sm text-foreground font-medium">{text}</p>
-        <p className="text-xs text-muted-foreground mt-0.5">{time}</p>
+    <div className="flex items-start gap-3 px-5 py-3 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer group">
+      <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: `${c}15` }}>
+        <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: c }} />
       </div>
-      <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: `${colors[type]}40` }} />
+      <div className="flex-1">
+        <p className="text-sm text-gray-900 dark:text-white font-bold leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{text}</p>
+        <p className="text-xs text-gray-500 font-medium mt-1">{time}</p>
+      </div>
     </div>
   );
 }
@@ -93,9 +103,11 @@ function PrincipalDashboardInner() {
   };
 
   if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-        className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full" />
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="relative w-16 h-16">
+        <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+          className="absolute inset-0 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full" />
+      </div>
     </div>
   );
 
@@ -110,229 +122,261 @@ function PrincipalDashboardInner() {
   const systemHealth = adminData?.systemHealth || [];
   const invoice = adminData?.invoiceSummary || { paid: 0, pending: 0, failed: 0 };
 
-  const atRiskStudents = recentActivity
-    .filter((a: any) => a.entityType === 'attendance' || a.action?.includes('absent'))
-    .slice(0, 4);
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white/90 dark:bg-[#1e1e2d]/90 backdrop-blur-md border border-gray-100 dark:border-white/10 p-3 rounded-xl shadow-xl">
+          <p className="font-bold text-gray-900 dark:text-white mb-1">{label}</p>
+          {payload.map((entry: any, index: number) => (
+            <p key={index} className="text-sm font-medium" style={{ color: entry.color }}>
+              {entry.name}: {entry.value.toLocaleString()}
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
-    <div className="space-y-6 pb-10" dir="rtl">
+    <div className="space-y-8 pb-12" dir="rtl">
       {/* Live toast */}
       <AnimatePresence>
         {liveNotif && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-gradient-to-r from-purple-600 to-violet-600 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-2 text-sm font-bold">
-            <Bell className="w-4 h-4" /> {liveNotif}
+          <motion.div initial={{ opacity: 0, y: -40, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -20, scale: 0.9 }}
+            className="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-white dark:bg-[#1e1e2d] border border-gray-100 dark:border-white/10 text-gray-900 dark:text-white px-5 py-3 rounded-2xl shadow-2xl shadow-indigo-500/10 flex items-center gap-3 text-sm font-bold">
+            <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-500/20 flex items-center justify-center text-indigo-600">
+              <Bell className="w-4 h-4" />
+            </div>
+            {liveNotif}
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Hero */}
-      <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-purple-700 via-violet-600 to-indigo-700 p-8 text-white shadow-2xl">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute -top-20 -right-20 w-80 h-80 bg-white/10 rounded-full blur-3xl" />
-          <div className="absolute -bottom-16 -left-10 w-56 h-56 bg-indigo-300/20 rounded-full blur-3xl" />
+      {/* Hero Section */}
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
+        className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-indigo-900 via-violet-900 to-purple-900 p-8 md:p-10 text-white shadow-2xl">
+        {/* Background Elements */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <motion.div animate={{ rotate: 360 }} transition={{ duration: 50, repeat: Infinity, ease: 'linear' }}
+            className="absolute -top-40 -right-40 w-96 h-96 bg-fuchsia-500/20 rounded-full blur-3xl" />
+          <motion.div animate={{ rotate: -360 }} transition={{ duration: 70, repeat: Infinity, ease: 'linear' }}
+            className="absolute -bottom-40 -left-20 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl" />
         </div>
-        <div className="relative z-10 flex flex-wrap items-start justify-between gap-6">
-          <div>
-            <p className="text-purple-200 text-sm font-medium mb-1">بوابة قائد المدرسة</p>
-            <h1 className="text-3xl font-extrabold mb-2">نظام Nexus EDU 🏫</h1>
-            <p className="text-white/80 text-sm">لوحة القيادة والمتابعة الشاملة لجميع عمليات المدرسة</p>
-            <div className="flex gap-3 mt-4 flex-wrap">
+
+        <div className="relative z-10 flex flex-col md:flex-row items-start justify-between gap-8">
+          <div className="flex-1">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 backdrop-blur-md mb-4">
+              <Shield className="w-3 h-3 text-indigo-300" />
+              <span className="text-xs font-bold text-indigo-100">بوابة مدير المدرسة الرئيسية</span>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-black mb-3 tracking-tight">نظام Nexus EDU 🏫</h1>
+            <p className="text-white/80 text-sm md:text-base font-medium max-w-2xl leading-relaxed mb-6">
+              مرحباً بك في مركز القيادة والتحكم. راقب أداء المدرسة، حلل البيانات الإحصائية، وتابع سير العملية التعليمية في مكان واحد.
+            </p>
+            
+            <div className="flex flex-wrap gap-4">
               {[
                 { label: `${kpis.totalStudents || 0} طالب`, icon: Users },
                 { label: `${kpis.totalTeachers || 0} معلم`, icon: BookOpen },
                 { label: `${kpis.totalClasses || 0} فصل`, icon: School },
               ].map((s, i) => (
-                <div key={i} className="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-2 flex items-center gap-2">
-                  <s.icon className="w-4 h-4 text-white/70" />
-                  <span className="text-sm font-bold">{s.label}</span>
+                <div key={i} className="bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-xl px-5 py-3 flex items-center gap-3 border border-white/10 transition-colors shadow-sm">
+                  <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                    <s.icon className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-sm font-black tracking-wide">{s.label}</span>
                 </div>
               ))}
             </div>
           </div>
-          {/* AI Summary */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/20 max-w-xs">
-            <h3 className="font-bold text-sm mb-2 flex items-center gap-2">
-              <BrainCircuit className="w-4 h-4 text-yellow-300" /> ملخص AI للأسبوع
-            </h3>
-            {aiSummary ? (
-              <p className="text-xs text-white/90 leading-relaxed">{aiSummary}</p>
-            ) : (
-              <button onClick={generateAiSummary} disabled={aiLoading}
-                className="w-full bg-white/20 hover:bg-white/30 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-                {aiLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
-                {aiLoading ? 'جاري التحليل...' : 'توليد ملخص ذكي'}
-              </button>
-            )}
-            {aiSummary && (
-              <button onClick={() => { setAiSummary(null); }} className="mt-2 text-[10px] text-white/50 hover:text-white/80">
-                تحديث الملخص ↺
-              </button>
-            )}
+
+          {/* AI Summary Card */}
+          <div className="w-full md:w-80 bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 shadow-xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-10 translate-x-10 group-hover:scale-150 transition-transform duration-700" />
+            <div className="relative z-10">
+              <h3 className="font-black text-white text-sm mb-4 flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
+                  <BrainCircuit className="w-4 h-4 text-yellow-300" />
+                </div>
+                موجز الذكاء الاصطناعي
+              </h3>
+              
+              <div className="bg-black/20 rounded-xl p-4 border border-white/10 min-h-[100px] flex flex-col justify-center">
+                {aiSummary ? (
+                  <p className="text-[13px] text-white/90 leading-relaxed font-medium">{aiSummary}</p>
+                ) : (
+                  <button onClick={generateAiSummary} disabled={aiLoading}
+                    className="w-full bg-indigo-500 hover:bg-indigo-600 py-3 rounded-xl text-xs font-bold transition-all shadow-lg disabled:opacity-50 flex items-center justify-center gap-2 text-white">
+                    {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                    {aiLoading ? 'جاري تحليل بيانات المدرسة...' : 'توليد تقرير استراتيجي'}
+                  </button>
+                )}
+              </div>
+              
+              {aiSummary && (
+                <button onClick={() => setAiSummary(null)} className="mt-3 w-full flex items-center justify-center gap-1.5 text-[11px] font-bold text-white/60 hover:text-white transition-colors bg-white/5 py-2 rounded-lg">
+                  <RefreshCw className="w-3 h-3" /> تحديث التقرير
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </motion.div>
 
       {/* KPI Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: 'إجمالي المستخدمين', value: kpis.totalUsers || 0, icon: Users, color: '#8b5cf6', trend: 5 },
-          { label: 'الطلاب النشطون', value: kpis.activeUsers || 0, icon: UserCheck, color: '#22c55e', trend: 3 },
-          { label: 'الإيرادات المحصلة', value: `${(kpis.totalRevenue || 0).toLocaleString()} ر.س`, icon: Award, color: '#f59e0b' },
-          { label: 'المواد الدراسية', value: kpis.totalSubjects || 0, icon: BookOpen, color: '#3b82f6', trend: 0 },
+          { title: 'إجمالي المستخدمين', value: kpis.totalUsers || 0, description: 'كافة الحسابات المسجلة', icon: Users, color: '#8b5cf6', trend: 5 },
+          { title: 'الطلاب النشطون', value: kpis.activeUsers || 0, description: 'معدل الدخول هذا الأسبوع', icon: UserCheck, color: '#10b981', trend: 3 },
+          { title: 'الإيرادات المحصلة', value: `${(kpis.totalRevenue || 0).toLocaleString()} ر.س`, description: 'مدفوعات الفصل الحالي', icon: Award, color: '#f59e0b' },
+          { title: 'المواد الدراسية', value: kpis.totalSubjects || 0, description: 'المناهج النشطة بالنظام', icon: BookOpen, color: '#3b82f6', trend: 0 },
         ].map((k, i) => (
-          <motion.div key={i} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}>
+          <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
             <KpiCard {...k} />
           </motion.div>
         ))}
       </div>
 
-      {/* Charts Row */}
-      <div className="grid lg:grid-cols-3 gap-5">
-        {/* Enrollment trend */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}
-          className="bg-card border border-border rounded-3xl p-6 lg:col-span-2">
-          <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-purple-500" /> اتجاه التسجيل الشهري
-          </h3>
+      {/* Main Charts */}
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Enrollment Chart */}
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}
+          className="bg-white dark:bg-[#1e1e2d] border border-gray-100 dark:border-white/5 rounded-[2rem] p-7 shadow-sm lg:col-span-2">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-extrabold text-gray-900 dark:text-white text-base flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center">
+                <TrendingUp className="w-4 h-4 text-indigo-500" />
+              </div>
+              مسار القبول والتسجيل
+            </h3>
+          </div>
           {enrollSeries.length > 0 ? (
-            <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={enrollSeries} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+            <ResponsiveContainer width="100%" height={260}>
+              <AreaChart data={enrollSeries} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                 <defs>
-                  <linearGradient id="pE" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                  <linearGradient id="colorEnroll" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
-                <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))' }} />
-                <Area type="monotone" dataKey="طلاب" stroke="#8b5cf6" fill="url(#pE)" strokeWidth={2.5} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-gray-100 dark:text-gray-800/50" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#9ca3af' }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#9ca3af' }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Area type="monotone" dataKey="طلاب" stroke="#6366f1" fill="url(#colorEnroll)" strokeWidth={3} activeDot={{ r: 6, fill: '#6366f1', stroke: '#fff', strokeWidth: 2 }} />
               </AreaChart>
             </ResponsiveContainer>
-          ) : <p className="text-center text-muted-foreground text-sm py-16">لا توجد بيانات تسجيل</p>}
+          ) : (
+            <div className="h-[260px] flex items-center justify-center text-gray-400 font-medium">لا توجد بيانات تسجيل متاحة حالياً</div>
+          )}
         </motion.div>
 
-        {/* Invoice Donut */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
-          className="bg-card border border-border rounded-3xl p-6">
-          <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-amber-500" /> حالة الفواتير
+        {/* Invoice Status */}
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}
+          className="bg-white dark:bg-[#1e1e2d] border border-gray-100 dark:border-white/5 rounded-[2rem] p-7 shadow-sm">
+          <h3 className="font-extrabold text-gray-900 dark:text-white text-base mb-6 flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center">
+              <FileText className="w-4 h-4 text-amber-500" />
+            </div>
+            الحالة المالية
           </h3>
-          <div className="relative flex items-center justify-center" style={{ height: 180 }}>
+          <div className="relative flex items-center justify-center" style={{ height: 200 }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie data={[
-                  { name: 'مدفوعة', value: invoice.paid || 1, color: '#22c55e' },
+                  { name: 'مدفوعة', value: invoice.paid || 1, color: '#10b981' },
                   { name: 'معلقة', value: invoice.pending || 0, color: '#f59e0b' },
                   { name: 'فشلت', value: invoice.failed || 0, color: '#ef4444' },
-                ]} cx="50%" cy="50%" innerRadius={55} outerRadius={78} paddingAngle={3} dataKey="value" stroke="none">
-                  {['#22c55e', '#f59e0b', '#ef4444'].map((c, i) => <Cell key={i} fill={c} />)}
+                ]} cx="50%" cy="50%" innerRadius={60} outerRadius={85} paddingAngle={5} dataKey="value" stroke="none">
+                  {['#10b981', '#f59e0b', '#ef4444'].map((c, i) => <Cell key={i} fill={c} />)}
                 </Pie>
-                <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))' }} />
+                <Tooltip content={<CustomTooltip />} />
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-2xl font-extrabold text-foreground">{invoice.paid + invoice.pending + invoice.failed}</span>
-              <span className="text-xs text-muted-foreground">فواتير</span>
+              <span className="text-3xl font-black text-gray-900 dark:text-white">{invoice.paid + invoice.pending + invoice.failed}</span>
+              <span className="text-xs font-bold text-gray-500">مجموع الفواتير</span>
             </div>
           </div>
-          <div className="space-y-2 mt-3">
+          <div className="space-y-3 mt-6">
             {[
-              { l: 'مدفوعة', v: invoice.paid, c: '#22c55e' },
-              { l: 'معلقة', v: invoice.pending, c: '#f59e0b' },
-              { l: 'فشلت', v: invoice.failed, c: '#ef4444' },
+              { l: 'تم التحصيل', v: invoice.paid, c: '#10b981', bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
+              { l: 'قيد الانتظار', v: invoice.pending, c: '#f59e0b', bg: 'bg-amber-50 dark:bg-amber-500/10' },
+              { l: 'فشل السداد', v: invoice.failed, c: '#ef4444', bg: 'bg-rose-50 dark:bg-rose-500/10' },
             ].map(s => s.v > 0 && (
-              <div key={s.l} className="flex items-center justify-between text-sm">
+              <div key={s.l} className={`flex items-center justify-between text-sm p-3 rounded-xl border border-transparent ${s.bg}`}>
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: s.c }} />
-                  <span className="text-muted-foreground">{s.l}</span>
+                  <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: s.c }} />
+                  <span className="font-bold text-gray-700 dark:text-gray-300">{s.l}</span>
                 </div>
-                <span className="font-bold text-foreground">{s.v}</span>
+                <span className="font-black text-gray-900 dark:text-white">{s.v}</span>
               </div>
             ))}
           </div>
         </motion.div>
       </div>
 
-      {/* Revenue Bar + Activity + System Health */}
-      <div className="grid lg:grid-cols-3 gap-5">
-        {/* Revenue */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}
-          className="bg-card border border-border rounded-3xl p-6">
-          <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-emerald-500" /> الإيرادات الشهرية
+      {/* Secondary Row: Revenue + Activity */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Revenue Bar */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+          className="bg-white dark:bg-[#1e1e2d] border border-gray-100 dark:border-white/5 rounded-[2rem] p-7 shadow-sm">
+          <h3 className="font-extrabold text-gray-900 dark:text-white text-base mb-6 flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center">
+              <BarChart3 className="w-4 h-4 text-emerald-500" />
+            </div>
+            الإيرادات الشهرية المحصلة
           </h3>
           {revSeries.length > 0 ? (
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={revSeries} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
-                <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))' }} />
-                <Bar dataKey="إيرادات" fill="#22c55e" radius={[4, 4, 0, 0]} maxBarSize={28} />
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={revSeries} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-gray-100 dark:text-gray-800/50" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#9ca3af' }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#9ca3af' }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="إيرادات" fill="#10b981" radius={[6, 6, 0, 0]} maxBarSize={32}>
+                  {revSeries.map((entry: any, index: number) => (
+                    <Cell key={`cell-${index}`} fill={index === revSeries.length - 1 ? '#10b981' : '#34d399'} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
-          ) : <p className="text-center text-muted-foreground text-sm py-16">لا توجد بيانات</p>}
+          ) : (
+            <div className="h-[260px] flex items-center justify-center text-gray-400 font-medium">لا توجد إيرادات مسجلة</div>
+          )}
         </motion.div>
 
         {/* Recent Activity */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
-          className="bg-card border border-border rounded-3xl overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-            <h3 className="font-bold text-sm text-foreground flex items-center gap-2">
-              <Activity className="w-4 h-4 text-purple-500" /> النشاط الأخير
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
+          className="bg-white dark:bg-[#1e1e2d] border border-gray-100 dark:border-white/5 rounded-[2rem] shadow-sm overflow-hidden flex flex-col h-full">
+          <div className="flex items-center justify-between px-7 py-5 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.02]">
+            <h3 className="font-extrabold text-gray-900 dark:text-white text-base flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center">
+                <Activity className="w-4 h-4 text-blue-500" />
+              </div>
+              سجل النشاط المباشر
             </h3>
-            <button onClick={load} className="text-muted-foreground hover:text-foreground">
+            <button onClick={load} className="p-2 rounded-xl text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
               <RefreshCw className="w-4 h-4" />
             </button>
           </div>
-          <div className="divide-y divide-border/50 max-h-64 overflow-y-auto">
-            {recentActivity.slice(0, 8).map((item: any, i: number) => (
-              <AlertRow key={i}
-                type={item.action?.includes('absent') ? 'warning' : item.action?.includes('delete') ? 'urgent' : 'info'}
-                text={`${item.actor || 'مستخدم'}: ${item.action || 'إجراء'}`}
-                time={new Date(item.createdAt).toLocaleString('ar-SA', { dateStyle: 'short', timeStyle: 'short' })} />
-            ))}
-            {recentActivity.length === 0 && (
-              <p className="text-center text-muted-foreground text-xs py-8">لا يوجد نشاط مسجل</p>
-            )}
-          </div>
-        </motion.div>
-
-        {/* System Health */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }}
-          className="bg-card border border-border rounded-3xl p-5">
-          <h3 className="font-bold text-foreground mb-4 flex items-center gap-2 text-sm">
-            <Shield className="w-4 h-4 text-rose-500" /> صحة النظام
-          </h3>
-          <div className="space-y-3">
-            {systemHealth.map((item: any) => {
-              const nameMap: Record<string, string> = {
-                'Database Connection': 'قاعدة البيانات',
-                'API Latency': 'سرعة الاستجابة',
-                'Storage Usage': 'مساحة التخزين',
-                'Active Websockets': 'اتصالات مباشرة',
-              };
-              const isHealthy = item.status === 'healthy';
-              return (
-                <div key={item.name} className="flex items-center justify-between p-3 bg-muted/40 rounded-xl">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${isHealthy ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                    <span className="text-xs font-bold text-foreground">{nameMap[item.name] || item.name}</span>
-                  </div>
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isHealthy ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400'}`}>
-                    {item.value}
-                  </span>
+          <div className="flex-1 overflow-y-auto max-h-[300px] p-2">
+            {recentActivity.length > 0 ? (
+              <div className="space-y-1">
+                {recentActivity.slice(0, 8).map((item: any, i: number) => (
+                  <AlertRow key={i}
+                    type={item.action?.includes('absent') ? 'warning' : item.action?.includes('delete') ? 'urgent' : 'info'}
+                    text={`${item.actor || 'مستخدم'}: ${item.action || 'إجراء'}`}
+                    time={new Date(item.createdAt).toLocaleString('ar-SA', { dateStyle: 'short', timeStyle: 'short' })} />
+                ))}
+              </div>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center py-10">
+                <div className="w-16 h-16 bg-gray-50 dark:bg-white/5 rounded-full flex items-center justify-center mb-3">
+                  <Activity className="w-8 h-8 text-gray-300 dark:text-gray-600" />
                 </div>
-              );
-            })}
-            {systemHealth.length === 0 && (
-              <div className="text-center py-4">
-                <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
-                <p className="text-xs text-muted-foreground">جميع الأنظمة تعمل بشكل طبيعي</p>
+                <p className="text-sm font-bold text-gray-400">لا توجد نشاطات مسجلة حالياً</p>
               </div>
             )}
           </div>

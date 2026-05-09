@@ -47,7 +47,7 @@ const loginPortals = [
     },
     {
         id: 'principal',
-        label: 'قائد المدرسة',
+        label: 'مدير المدرسة',
         icon: Briefcase,
         color: 'from-[#8B5CF6] to-[#6D28D9]',
         highlight: '#8B5CF6',

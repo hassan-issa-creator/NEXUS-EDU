@@ -369,22 +369,7 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* ═══════════ PARTNER SCHOOLS MARQUEE ═══════════ */}
-            <section className="py-12 border-y border-slate-100 bg-slate-50/50">
-                <div className="container mx-auto px-6 mb-6 text-center">
-                    <p className="text-sm text-slate-500 font-medium">شركاؤنا من المدارس والمؤسسات التعليمية</p>
-                </div>
-                <div className="marquee-wrapper">
-                    <div className="flex animate-marquee whitespace-nowrap">
-                        {[...schoolPartners, ...schoolPartners].map((school, i) => (
-                            <div key={i} className="mx-8 flex items-center gap-2 text-slate-600 font-semibold text-sm">
-                                <div className="w-2 h-2 rounded-full bg-primary-400/60" />
-                                {school}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </section>
+
 
             {/* ═══════════ STATISTICS ═══════════ */}
             <section id="stats" className="py-24 relative overflow-hidden">

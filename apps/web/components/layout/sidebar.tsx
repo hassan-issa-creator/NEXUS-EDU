@@ -264,7 +264,7 @@ function getRoleLabel(role: string): string {
         parent: 'ولي أمر',
         admin: 'مدير النظام',
         manager: 'مدير',
-        principal: 'قائد المدرسة',
+        principal: 'مدير المدرسة',
         vice_principal: 'وكيل المدرسة',
         counselor: 'مرشد طلابي',
         supervisor: 'مشرف تربوي',

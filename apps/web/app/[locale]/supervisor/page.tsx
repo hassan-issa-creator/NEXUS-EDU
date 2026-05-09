@@ -1,10 +1,9 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { Users, BookOpen, ClipboardCheck, BarChart3, AlertTriangle, TrendingUp, Eye, FileText, Star, Calendar, ChevronLeft } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Users, BookOpen, ClipboardCheck, BarChart3, AlertTriangle, TrendingUp, Eye, FileText, Star, Calendar, Zap, Sparkles, Loader2, Target } from 'lucide-react';
+import { apiClient } from '@/lib/api/client';
 
 const visitData = [
     { id: 1, teacher: 'أ. أحمد محمد', subject: 'الرياضيات', class: 'الصف 10 - أ', date: '2026-03-20', rating: 4.5, status: 'مكتملة' },
@@ -22,167 +21,206 @@ const performanceMetrics = [
 ];
 
 export default function SupervisorDashboard() {
+    const [aiRecommendation, setAiRecommendation] = useState<string | null>(null);
+    const [aiLoading, setAiLoading] = useState(false);
+
     const completedVisits = visitData.filter(v => v.status === 'مكتملة').length;
     const scheduledVisits = visitData.filter(v => v.status === 'مجدولة').length;
-    const avgRating = visitData.filter(v => v.rating > 0).reduce((sum, v) => sum + v.rating, 0) / completedVisits;
+    const avgRating = visitData.filter(v => v.rating > 0).reduce((sum, v) => sum + v.rating, 0) / (completedVisits || 1);
+
+    const generateAiRecommendation = async () => {
+        setAiLoading(true);
+        try {
+            const res = await apiClient.post('/ai/ask', {
+                question: `أنت مشرف تربوي خبير ومدرب. بناءً على مؤشرات الأداء التالية للمعلمين: ${JSON.stringify(performanceMetrics)}. أعطني توصية تدريبية واحدة مركزة لتطوير أداء المعلمين.`
+            });
+            setAiRecommendation(res.data?.data?.answer || 'يبدو أن التركيز على دمج التقنية في التعليم سيحقق قفزة نوعية في الأداء العام.');
+        } catch {
+            setAiRecommendation('لا يمكن الوصول للذكاء الاصطناعي حالياً.');
+        } finally {
+            setAiLoading(false);
+        }
+    };
 
     return (
-        <div className="min-h-screen bg-background p-8" dir="rtl">
-            {/* Header */}
-            <motion.div
-                initial={{ opacity: 0, y: -15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ type: 'spring', stiffness: 200 }}
-                className="flex justify-between items-center mb-8"
-            >
-                <div>
-                    <h1 className="text-[28px] font-extrabold text-foreground tracking-tight">بوابة الإشراف التربوي</h1>
-                    <p className="text-[14px] text-muted-foreground mt-1">نظام Nexus EDU - متابعة أداء المعلمين والزيارات الإشرافية</p>
+        <div className="space-y-8 pb-12" dir="rtl">
+            {/* HERO */}
+            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
+                className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-indigo-700 via-blue-700 to-cyan-700 p-8 md:p-10 text-white shadow-[0_20px_50px_rgba(59,130,246,0.25)]">
+                <div className="absolute inset-0 pointer-events-none opacity-40">
+                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 50, repeat: Infinity, ease: 'linear' }}
+                        className="absolute -top-40 -right-40 w-[400px] h-[400px] bg-white/20 rounded-full blur-3xl" />
+                    <motion.div animate={{ rotate: -360 }} transition={{ duration: 60, repeat: Infinity, ease: 'linear' }}
+                        className="absolute -bottom-40 -left-20 w-[300px] h-[300px] bg-cyan-400/20 rounded-full blur-3xl" />
                 </div>
-                <div className="flex gap-3">
-                    <Button className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl px-6 hover-lift">
-                        + زيارة جديدة
-                    </Button>
-                    <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center border-2 border-white shadow-md">
-                        <span className="text-indigo-600 font-bold text-lg">م</span>
+                <div className="relative z-10 flex flex-col md:flex-row items-start justify-between gap-8">
+                    <div className="flex-1">
+                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 backdrop-blur-md mb-4">
+                            <Target className="w-3 h-3 text-cyan-300" />
+                            <span className="text-xs font-bold text-indigo-100">بوابة المشرف التربوي</span>
+                        </div>
+                        <h1 className="text-4xl md:text-5xl font-black mb-3 tracking-tight">الإشراف التربوي والتقييم 🎯</h1>
+                        <p className="text-white/80 text-sm md:text-base font-medium max-w-xl leading-relaxed mb-6">
+                            قيادة جودة التعليم من خلال تقييم المعلمين، التوجيه المستمر، وتحليل مؤشرات الأداء لبناء خطط التحسين.
+                        </p>
+                        <div className="flex gap-3">
+                            <button className="bg-white text-indigo-700 hover:bg-indigo-50 px-6 py-3 rounded-xl font-bold text-sm shadow-lg transition-colors">
+                                + جدولة زيارة إشرافية
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* AI Supervisor Advisor */}
+                    <div className="w-full md:w-[350px] bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 shadow-xl relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-10 translate-x-10 group-hover:scale-150 transition-transform duration-700" />
+                        <div className="relative z-10">
+                            <h3 className="font-black text-white text-sm mb-4 flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
+                                    <Sparkles className="w-4 h-4 text-yellow-300" />
+                                </div>
+                                الموجه التربوي AI
+                            </h3>
+                            <div className="bg-black/20 rounded-xl p-4 border border-white/10 min-h-[100px] flex flex-col justify-center">
+                                {aiRecommendation ? (
+                                    <p className="text-[13px] text-white/90 leading-relaxed font-medium">{aiRecommendation}</p>
+                                ) : (
+                                    <button onClick={generateAiRecommendation} disabled={aiLoading}
+                                        className="w-full bg-indigo-500 hover:bg-indigo-600 py-3 rounded-xl text-xs font-bold transition-all shadow-lg disabled:opacity-50 flex items-center justify-center gap-2 text-white">
+                                        {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                                        {aiLoading ? 'جاري التحليل التربوي...' : 'استخراج خطة تطويرية'}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </motion.div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <StatCard title="إجمالي المعلمين تحت الإشراف" value="24" icon={Users} color="text-indigo-600" bg="bg-indigo-50" />
-                <StatCard title="الزيارات المكتملة" value={completedVisits.toString()} icon={ClipboardCheck} color="text-teal-600" bg="bg-teal-50" />
-                <StatCard title="الزيارات المجدولة" value={scheduledVisits.toString()} icon={Calendar} color="text-amber-600" bg="bg-amber-50" />
-                <StatCard title="متوسط التقييم" value={avgRating.toFixed(1)} icon={Star} color="text-yellow-600" bg="bg-yellow-50" />
+            {/* STATS */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                <StatCard title="المعلمين تحت الإشراف" value="24" icon={Users} color="#4f46e5" bg="bg-indigo-50 dark:bg-indigo-500/10" />
+                <StatCard title="الزيارات المكتملة" value={completedVisits} icon={ClipboardCheck} color="#0d9488" bg="bg-teal-50 dark:bg-teal-500/10" />
+                <StatCard title="الزيارات المجدولة" value={scheduledVisits} icon={Calendar} color="#f59e0b" bg="bg-amber-50 dark:bg-amber-500/10" />
+                <StatCard title="متوسط التقييم" value={avgRating.toFixed(1)} icon={Star} color="#eab308" bg="bg-yellow-50 dark:bg-yellow-500/10" />
             </div>
 
-            {/* Two Column Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                {/* Visits Table */}
-                <div className="lg:col-span-2 bg-card rounded-[20px] shadow-sm border border-border overflow-hidden">
-                    <div className="p-6 border-b border-border flex justify-between items-center">
-                        <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-                            <Eye className="w-5 h-5 text-indigo-500" />
+            {/* TWO COLUMNS */}
+            <div className="grid lg:grid-cols-3 gap-6">
+                {/* VISITS TABLE */}
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}
+                    className="lg:col-span-2 bg-white dark:bg-[#1e1e2d] border border-gray-100 dark:border-white/5 rounded-[2rem] shadow-sm overflow-hidden flex flex-col">
+                    <div className="px-6 py-5 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.02] flex justify-between items-center">
+                        <h3 className="font-extrabold text-gray-900 dark:text-white flex items-center gap-2 text-base">
+                            <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center">
+                                <Eye className="w-4 h-4 text-indigo-500" />
+                            </div>
                             سجل الزيارات الإشرافية
-                        </h2>
-                        <Button variant="outline" size="sm" className="text-sm font-bold rounded-xl">عرض الكل</Button>
+                        </h3>
+                        <button className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700">عرض الكل</button>
                     </div>
-
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-right border-collapse">
+                    <div className="flex-1 overflow-x-auto">
+                        <table className="w-full text-right border-collapse min-w-[600px]">
                             <thead>
-                                <tr className="bg-muted/50/50 text-muted-foreground text-[13px] font-semibold border-b border-border">
-                                    <th className="p-4 pl-6">المعلم</th>
+                                <tr className="bg-white dark:bg-[#1e1e2d] text-gray-500 dark:text-gray-400 text-xs font-bold border-b border-gray-100 dark:border-white/5">
+                                    <th className="p-4 px-6">المعلم</th>
                                     <th className="p-4">المادة</th>
                                     <th className="p-4">الفصل</th>
                                     <th className="p-4">التاريخ</th>
                                     <th className="p-4">التقييم</th>
-                                    <th className="p-4 pr-6">الحالة</th>
+                                    <th className="p-4 px-6">الحالة</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {visitData.map((visit) => (
-                                    <motion.tr
-                                        key={visit.id}
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        className="border-b border-border/50 hover:bg-muted/50/50 transition-colors"
-                                    >
-                                        <td className="p-4 pl-6 font-bold text-foreground flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-xs font-bold text-indigo-600">
-                                                {visit.teacher.replace('أ. ', '').replace('د. ', '').charAt(0)}
+                                    <tr key={visit.id} className="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
+                                        <td className="p-4 px-6">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/20 flex items-center justify-center text-xs font-black text-indigo-600 dark:text-indigo-400 shadow-sm border border-indigo-100 dark:border-indigo-500/30">
+                                                    {visit.teacher.replace('أ. ', '').replace('د. ', '').charAt(0)}
+                                                </div>
+                                                <p className="font-bold text-gray-900 dark:text-white group-hover:text-indigo-600 transition-colors">{visit.teacher}</p>
                                             </div>
-                                            {visit.teacher}
                                         </td>
-                                        <td className="p-4 text-muted-foreground text-sm">{visit.subject}</td>
-                                        <td className="p-4 text-muted-foreground text-sm">{visit.class}</td>
-                                        <td className="p-4 text-muted-foreground text-sm font-mono">{visit.date}</td>
+                                        <td className="p-4 text-xs font-medium text-gray-500">{visit.subject}</td>
+                                        <td className="p-4 text-xs font-medium text-gray-500">{visit.class}</td>
+                                        <td className="p-4 text-xs font-bold text-gray-400">{visit.date}</td>
                                         <td className="p-4">
                                             {visit.rating > 0 ? (
-                                                <div className="flex items-center gap-1">
-                                                    <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                                                    <span className="font-bold text-foreground">{visit.rating}</span>
+                                                <div className="flex items-center gap-1.5 bg-yellow-50 dark:bg-yellow-500/10 px-2 py-1 rounded-lg w-fit border border-yellow-100 dark:border-yellow-500/20">
+                                                    <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
+                                                    <span className="font-black text-yellow-700 dark:text-yellow-400 text-xs">{visit.rating}</span>
                                                 </div>
                                             ) : (
-                                                <span className="text-muted-foreground/80 text-sm">—</span>
+                                                <span className="text-gray-400 text-xs font-bold">—</span>
                                             )}
                                         </td>
-                                        <td className="p-4 pr-6">
-                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold ${
-                                                visit.status === 'مكتملة' ? 'bg-teal-100 text-teal-700' : 'bg-amber-100 text-amber-700'
-                                            }`}>
-                                                {visit.status}
-                                            </span>
+                                        <td className="p-4 px-6">
+                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black border ${
+                                                visit.status === 'مكتملة' ? 'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-500/10 dark:text-teal-400 dark:border-teal-500/30' : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30'
+                                            }`}>{visit.status}</span>
                                         </td>
-                                    </motion.tr>
+                                    </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
-                </div>
+                </motion.div>
 
-                {/* Performance Metrics */}
-                <div className="bg-card rounded-[20px] shadow-sm border border-border p-6">
-                    <h3 className="text-lg font-bold text-foreground mb-6 flex items-center gap-2">
-                        <BarChart3 className="w-5 h-5 text-indigo-500" />
+                {/* PERFORMANCE METRICS */}
+                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}
+                    className="bg-white dark:bg-[#1e1e2d] border border-gray-100 dark:border-white/5 rounded-[2rem] p-7 shadow-sm">
+                    <h3 className="font-extrabold text-gray-900 dark:text-white mb-6 flex items-center gap-2 text-base">
+                        <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center">
+                            <BarChart3 className="w-4 h-4 text-blue-500" />
+                        </div>
                         مؤشرات الأداء العامة
                     </h3>
                     <div className="space-y-5">
                         {performanceMetrics.map((metric, i) => (
                             <div key={i}>
                                 <div className="flex justify-between mb-2">
-                                    <span className="text-sm font-medium text-muted-foreground">{metric.label}</span>
-                                    <span className="text-sm font-bold text-foreground">{metric.value}%</span>
+                                    <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{metric.label}</span>
+                                    <span className={`text-xs font-black ${metric.value >= 90 ? 'text-indigo-600 dark:text-indigo-400' : metric.value >= 80 ? 'text-teal-600 dark:text-teal-400' : 'text-amber-600 dark:text-amber-400'}`}>{metric.value}%</span>
                                 </div>
-                                <div className="h-2.5 bg-muted rounded-full overflow-hidden">
-                                    <motion.div
-                                        initial={{ width: 0 }}
-                                        animate={{ width: `${metric.value}%` }}
-                                        transition={{ duration: 1, delay: i * 0.1 }}
-                                        className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-indigo-600"
-                                    />
+                                <div className="h-2.5 bg-gray-100 dark:bg-[#12121a] rounded-full overflow-hidden">
+                                    <motion.div initial={{ width: 0 }} animate={{ width: `${metric.value}%` }} transition={{ duration: 1, delay: i * 0.1 }}
+                                        className={`h-full rounded-full relative ${metric.value >= 90 ? 'bg-indigo-500' : metric.value >= 80 ? 'bg-teal-500' : 'bg-amber-500'}`}>
+                                        <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(255,255,255,0.2)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.2)_50%,rgba(255,255,255,0.2)_75%,transparent_75%,transparent)] bg-[length:1rem_1rem] opacity-50" />
+                                    </motion.div>
                                 </div>
                             </div>
                         ))}
                     </div>
 
-                    {/* AI Recommendation */}
-                    <div className="mt-6 p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
-                        <h4 className="font-bold text-indigo-800 text-sm mb-2 flex items-center gap-2">
-                            <TrendingUp className="w-4 h-4" />
-                            توصية NEXUS AI
+                    <div className="mt-8 p-5 bg-indigo-50 dark:bg-indigo-500/10 rounded-2xl border border-indigo-100 dark:border-indigo-500/20 relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-16 h-16 bg-indigo-500/10 rounded-full blur-xl" />
+                        <h4 className="font-extrabold text-indigo-800 dark:text-indigo-400 text-sm mb-2 flex items-center gap-2">
+                            <TrendingUp className="w-4 h-4" /> تنبيه NEXUS AI
                         </h4>
-                        <p className="text-xs text-indigo-700 leading-relaxed">
-                            لوحظ تراجع في مؤشر &quot;استخدام التقنية&quot; لـ 3 معلمين. ننصح بتنظيم ورشة تدريبية على أدوات التعليم الإلكتروني.
+                        <p className="text-xs font-medium text-indigo-700 dark:text-indigo-300 leading-relaxed">
+                            لوحظ تراجع في مؤشر &quot;استخدام التقنية&quot; لـ 3 معلمين. الذكاء الاصطناعي يقترح تنظيم ورشة عمل داخلية حول استراتيجيات التعليم الرقمي الفعال.
                         </p>
                     </div>
-                </div>
+                </motion.div>
             </div>
 
-            {/* Quick Actions */}
+            {/* QUICK ACTIONS */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                    { icon: FileText, label: 'تقرير إشرافي', desc: 'إنشاء تقرير زيارة جديد', color: 'from-blue-500 to-blue-700' },
-                    { icon: ClipboardCheck, label: 'نموذج تقييم', desc: 'تقييم أداء معلم', color: 'from-teal-500 to-teal-700' },
-                    { icon: AlertTriangle, label: 'خطة علاجية', desc: 'إنشاء خطة تحسين أداء', color: 'from-amber-500 to-amber-700' },
-                    { icon: BookOpen, label: 'تبادل الزيارات', desc: 'جدولة زيارة متبادلة', color: 'from-purple-500 to-purple-700' },
+                    { icon: FileText, label: 'تقرير إشرافي', desc: 'إنشاء تقرير زيارة جديد', color: 'from-blue-500 to-blue-700', shadow: 'shadow-blue-500/30' },
+                    { icon: ClipboardCheck, label: 'نموذج تقييم', desc: 'تقييم أداء معلم', color: 'from-teal-500 to-teal-700', shadow: 'shadow-teal-500/30' },
+                    { icon: AlertTriangle, label: 'خطة علاجية', desc: 'إنشاء خطة تحسين أداء', color: 'from-amber-500 to-amber-700', shadow: 'shadow-amber-500/30' },
+                    { icon: BookOpen, label: 'تبادل الزيارات', desc: 'جدولة زيارة متبادلة', color: 'from-purple-500 to-purple-700', shadow: 'shadow-purple-500/30' },
                 ].map((action, i) => (
-                    <motion.div
-                        key={i}
-                        initial={{ opacity: 0, y: 15, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        transition={{ delay: 0.1 + i * 0.08, type: 'spring', stiffness: 200 }}
-                        whileHover={{ scale: 1.05, y: -4 }}
-                        className={`relative overflow-hidden rounded-2xl p-5 cursor-pointer shadow-lg bg-gradient-to-br ${action.color} group`}
-                    >
-                        <div className="absolute top-0 left-0 w-20 h-20 bg-card/10 rounded-full -translate-x-6 -translate-y-6 group-hover:scale-150 transition-transform duration-500" />
+                    <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.05 }}
+                        whileHover={{ scale: 1.03, y: -2 }} className={`relative overflow-hidden rounded-[2rem] p-6 cursor-pointer shadow-lg bg-gradient-to-br ${action.color} group ${action.shadow}`}>
+                        <div className="absolute top-0 left-0 w-24 h-24 bg-white/10 rounded-full -translate-x-6 -translate-y-6 group-hover:scale-150 transition-transform duration-700" />
                         <div className="relative z-10">
-                            <div className="w-10 h-10 rounded-xl bg-card/20 flex items-center justify-center mb-3">
-                                <action.icon className="w-5 h-5 text-white" />
+                            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center mb-4 backdrop-blur-sm border border-white/20 shadow-inner">
+                                <action.icon className="w-6 h-6 text-white" />
                             </div>
-                            <h4 className="font-bold text-white text-sm">{action.label}</h4>
-                            <p className="text-white/70 text-xs mt-1">{action.desc}</p>
+                            <h4 className="font-black text-white text-base mb-1">{action.label}</h4>
+                            <p className="text-white/70 text-xs font-medium">{action.desc}</p>
                         </div>
                     </motion.div>
                 ))}
@@ -191,14 +229,17 @@ export default function SupervisorDashboard() {
     );
 }
 
-function StatCard({ title, value, icon: Icon, color, bg }: { title: string, value: string, icon: any, color: string, bg: string }) {
+function StatCard({ title, value, icon: Icon, color, bg }: { title: string, value: string | number, icon: any, color: string, bg: string }) {
     return (
-        <div className="bg-card p-6 rounded-[20px] shadow-sm border border-border flex justify-between items-start hover:-translate-y-1 transition-transform cursor-pointer">
-            <div>
-                <p className="text-[13px] font-medium text-muted-foreground mb-1">{title}</p>
-                <h3 className={`text-2xl font-extrabold ${color}`}>{value}</h3>
+        <motion.div whileHover={{ y: -4, scale: 1.02 }} className="bg-white dark:bg-[#1e1e2d] border border-gray-100 dark:border-white/5 rounded-[2rem] p-6 shadow-sm flex items-center gap-4 group relative overflow-hidden">
+            <div className={`absolute -top-10 -right-10 w-32 h-32 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-3xl rounded-full`} style={{ backgroundColor: color }} />
+            <div className={`w-14 h-14 rounded-2xl ${bg} flex items-center justify-center flex-shrink-0 relative z-10 border border-white/5`}>
+                <Icon className="w-6 h-6" style={{ color }} />
             </div>
-            <div className={`p-3 rounded-2xl ${bg}`}><Icon className={`w-6 h-6 ${color}`} /></div>
-        </div>
+            <div className="relative z-10">
+                <p className="text-3xl font-black text-gray-900 dark:text-white leading-none mb-1">{value}</p>
+                <p className="text-xs font-bold text-gray-500 dark:text-gray-400">{title}</p>
+            </div>
+        </motion.div>
     );
 }
