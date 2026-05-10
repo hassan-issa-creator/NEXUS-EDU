@@ -43,7 +43,7 @@ function ChildSelector({ children, selectedIdx, onSelect }: { children: any[]; s
                 <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">المعدل</p>
               </div>
               <div className="bg-white/50 dark:bg-black/20 rounded-xl p-2.5 text-center border border-transparent" style={{ borderColor: `${color}20` }}>
-                <p className="text-xl font-black" style={{ color }}>{child.attendance || 0}%</p>
+                <p className="text-xl font-black" style={{ color }}>{child.attendanceRate || 0}%</p>
                 <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">الحضور</p>
               </div>
             </div>
@@ -136,7 +136,9 @@ export default function ParentDashboard() {
               <Shield className="w-3 h-3 text-yellow-300" />
               <span className="text-xs font-bold text-amber-100">بوابة المتابعة الأبوية الموحدة</span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-black mb-3 tracking-tight">أهلاً بك، ولي الأمر 👨‍👩‍👧‍👦</h1>
+            <h1 className="text-4xl md:text-5xl font-black mb-4 tracking-tight leading-[1.2]">
+              أهلاً بك،<br />فيصل الغامدي 👨‍👩‍👧‍👦
+            </h1>
             <p className="text-white/90 text-sm font-medium mb-6 max-w-xl leading-relaxed">
               تتابع من خلال هذا المركز الأداء الأكاديمي لـ <strong className="text-yellow-200 text-lg px-1">{childrenData.length}</strong>
               {childrenData.length === 1 ? ' ابن مسجل' : ' أبناء مسجلين'}.
@@ -160,7 +162,7 @@ export default function ParentDashboard() {
             <p className="text-xs font-bold text-amber-200 mb-1">ملخص سريع لـ {selected?.name}</p>
             {[
               { label: 'المعدل العام', value: selected?.gpa || '0.0', icon: Star },
-              { label: 'نسبة الحضور', value: `${selected?.attendance || 0}%`, icon: Calendar },
+              { label: 'نسبة الحضور', value: `${selected?.attendanceRate || 0}%`, icon: Calendar },
               { label: 'الواجبات القادمة', value: selected?.upcomingAssignments?.length || 0, icon: BookOpen },
             ].map((s, i) => (
               <div key={i} className="flex items-center gap-3">

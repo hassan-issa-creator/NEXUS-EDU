@@ -356,7 +356,7 @@ export default function GlobalLoginSelectorPage() {
                     >
                         <p className="text-xs text-slate-400 mb-3">
                             هل تواجه صعوبة في الدخول؟
-                            <a href="mailto:support@nexusedu.sa" className="text-primary-500 font-semibold mr-1 hover:underline underline-expand">
+                            <a href="https://wa.me/201098810794" target="_blank" rel="noopener noreferrer" className="text-primary-500 font-semibold mr-1 hover:underline underline-expand">
                                 تواصل مع الدعم الفني
                             </a>
                         </p>

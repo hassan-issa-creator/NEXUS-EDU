@@ -1,7 +1,7 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
-import { Bell, Search, Sun, Moon, Menu } from 'lucide-react'
+import { Bell, Search, Sun, Moon, Menu, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useTheme } from 'next-themes'
 import {
@@ -13,6 +13,7 @@ import {
 import { EnhancedNotifications } from '@/components/dashboard/notifications-popover'
 import { GlobalSearch } from '@/components/search/global-search'
 import { XpBar } from '@/components/gamification/xp-bar'
+import { useAuth } from '@/contexts/auth-context'
 
 // Map routes to Arabic page titles
 const PAGE_TITLES: Record<string, string> = {
@@ -77,6 +78,7 @@ interface DashboardHeaderProps {
 export function DashboardHeader({ title, onMenuClick }: DashboardHeaderProps) {
     const { setTheme } = useTheme()
     const pathname = usePathname()
+    const { signOut } = useAuth()
     const pageTitle = title || getPageTitle(pathname)
 
     return (
@@ -119,6 +121,12 @@ export function DashboardHeader({ title, onMenuClick }: DashboardHeaderProps) {
                         <DropdownMenuItem onClick={() => setTheme("system")}>تلقائي</DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
+
+                {/* LogOut Button */}
+                <Button variant="ghost" size="icon" onClick={() => signOut()} className="text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 h-9 w-9">
+                    <LogOut className="h-4 w-4" />
+                    <span className="sr-only">تسجيل الخروج</span>
+                </Button>
             </div>
         </header>
     )

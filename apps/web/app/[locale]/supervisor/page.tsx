@@ -23,6 +23,7 @@ const performanceMetrics = [
 export default function SupervisorDashboard() {
     const [aiRecommendation, setAiRecommendation] = useState<string | null>(null);
     const [aiLoading, setAiLoading] = useState(false);
+    const [planModalOpen, setPlanModalOpen] = useState(false);
 
     const completedVisits = visitData.filter(v => v.status === 'مكتملة').length;
     const scheduledVisits = visitData.filter(v => v.status === 'مجدولة').length;
@@ -44,6 +45,45 @@ export default function SupervisorDashboard() {
 
     return (
         <div className="space-y-8 pb-12" dir="rtl">
+            {/* Development Plan Modal */}
+            {planModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setPlanModalOpen(false)}>
+                    <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-card w-full max-w-lg p-8 rounded-[2rem] shadow-2xl border border-border" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center mb-6 border-b border-border pb-4">
+                            <h2 className="text-xl font-black text-foreground flex items-center gap-2">
+                                <Sparkles className="w-5 h-5 text-indigo-500" />
+                                الخطة التطويرية الذكية
+                            </h2>
+                        </div>
+                        <p className="text-muted-foreground mb-4 text-sm font-medium leading-relaxed">
+                            تم استخراج خطط تطويرية مخصصة بناءً على تحليل الذكاء الاصطناعي للفئة المستهدفة:
+                        </p>
+                        <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                            {[
+                                { name: 'أحمد فيصل الغامدي', plan: 'دعم إضافي في مهارات القراءة الاستيعابية', level: 'متوسط' },
+                                { name: 'أ. سارة خالد', plan: 'ورشة عمل حول دمج التقنية في الشرح', level: 'متقدم' },
+                                { name: 'د. حسن عمر', plan: 'تحسين استراتيجيات إدارة الوقت في الفصل', level: 'متوسط' },
+                                { name: 'أ. نورة سعد', plan: 'تطوير طرق التقويم المستمر للطلاب', level: 'مبتدئ' },
+                                { name: 'يوسف عبدالله', plan: 'تعزيز مهارات القيادة الطلابية والمشاركة', level: 'متقدم' }
+                            ].map((target, idx) => (
+                                <div key={idx} className="bg-muted/50 p-4 rounded-xl border border-border flex flex-col gap-1">
+                                    <div className="flex justify-between items-center">
+                                        <span className="font-bold text-sm text-foreground">{target.name}</span>
+                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300">{target.level}</span>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground font-medium">{target.plan}</p>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="mt-6 flex justify-end">
+                            <button onClick={() => setPlanModalOpen(false)} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm transition-colors shadow-lg shadow-indigo-500/30">
+                                إغلاق
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+
             {/* HERO */}
             <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
                 className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-indigo-700 via-blue-700 to-cyan-700 p-8 md:p-10 text-white shadow-[0_20px_50px_rgba(59,130,246,0.25)]">
@@ -84,10 +124,10 @@ export default function SupervisorDashboard() {
                                 {aiRecommendation ? (
                                     <p className="text-[13px] text-white/90 leading-relaxed font-medium">{aiRecommendation}</p>
                                 ) : (
-                                    <button onClick={generateAiRecommendation} disabled={aiLoading}
+                                    <button onClick={() => setPlanModalOpen(true)} disabled={aiLoading}
                                         className="w-full bg-indigo-500 hover:bg-indigo-600 py-3 rounded-xl text-xs font-bold transition-all shadow-lg disabled:opacity-50 flex items-center justify-center gap-2 text-white">
-                                        {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-                                        {aiLoading ? 'جاري التحليل التربوي...' : 'استخراج خطة تطويرية'}
+                                        <Zap className="w-4 h-4" />
+                                        استخراج خطة تطويرية
                                     </button>
                                 )}
                             </div>

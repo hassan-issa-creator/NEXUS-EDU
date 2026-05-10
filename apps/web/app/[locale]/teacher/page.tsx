@@ -123,11 +123,11 @@ export default function TeacherDashboardPage() {
               <Sparkles className="w-3 h-3 text-yellow-300 animate-pulse" />
               <span className="text-xs font-bold text-teal-100">بوابة المعلم الذكية</span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-black mb-4 tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-teal-200">
-              أهلاً بك، أ. {teacher.name}
+            <h1 className="text-4xl md:text-5xl font-black mb-4 tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-teal-200 leading-[1.2]">
+              أهلاً بك،<br />أ. {teacher.name}
             </h1>
 
-            <div className="flex flex-wrap gap-4 mt-2">
+            <div className="flex flex-wrap gap-4 mt-4">
               {[
                 { icon: Users, val: summary.totalStudents, label: 'إجمالي الطلاب', color: 'from-teal-400/30 to-teal-500/20' },
                 { icon: ClipboardList, val: summary.pendingSubmissions, label: 'بانتظار التصحيح', color: 'from-amber-400/30 to-amber-500/20' },
@@ -165,6 +165,22 @@ export default function TeacherDashboardPage() {
           </div>
         </div>
       </motion.div>
+
+      {/* AI Quick Insights */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
+         <div className="bg-gradient-to-br from-teal-500/10 to-teal-600/5 border border-teal-500/20 p-5 rounded-3xl flex gap-4 items-center shadow-sm">
+            <div className="w-12 h-12 rounded-full bg-teal-500/20 flex items-center justify-center flex-shrink-0"><TrendingUp className="text-teal-600 w-6 h-6"/></div>
+            <div><p className="text-sm font-extrabold text-gray-900 dark:text-white">أداء متميز للفصل 10-أ</p><p className="text-xs text-gray-500 font-medium">ارتفاع في متوسط الدرجات بنسبة 12% هذا الأسبوع</p></div>
+         </div>
+         <div className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border border-amber-500/20 p-5 rounded-3xl flex gap-4 items-center shadow-sm">
+            <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0"><AlertCircle className="text-amber-600 w-6 h-6"/></div>
+            <div><p className="text-sm font-extrabold text-gray-900 dark:text-white">3 طلاب يحتاجون للمتابعة</p><p className="text-xs text-gray-500 font-medium">انخفاض في مستوى التفاعل في مادة الرياضيات</p></div>
+         </div>
+         <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/20 p-5 rounded-3xl flex gap-4 items-center shadow-sm">
+            <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0"><BrainCircuit className="text-blue-600 w-6 h-6"/></div>
+            <div><p className="text-sm font-extrabold text-gray-900 dark:text-white">تحليل الذكاء الاصطناعي</p><p className="text-xs text-gray-500 font-medium">تم تجهيز 5 خطط علاجية مقترحة للطلاب المتعثرين</p></div>
+         </div>
+      </div>
 
       {/* KPI ROW */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { DollarSign, Users, CheckCircle, Clock, Wallet, Search, Filter, Download } from 'lucide-react';
+import { DollarSign, Users, CheckCircle, Clock, Wallet, Search, Filter, Download, FileText, Sheet, BarChart3, BrainCircuit } from 'lucide-react';
 
 interface Employee {
     id: number;
@@ -24,6 +24,7 @@ const initialEmployees: Employee[] = [
 export default function AccountantDashboard() {
     const [employees, setEmployees] = useState(initialEmployees);
     const [searchQuery, setSearchQuery] = useState('');
+    const [exportModalOpen, setExportModalOpen] = useState(false);
 
     const totalPayroll = employees.reduce((sum, emp) => sum + emp.salary, 0);
     const paidAmount = employees.filter(e => e.status === 'paid').reduce((sum, emp) => sum + emp.salary, 0);
@@ -48,13 +49,41 @@ export default function AccountantDashboard() {
     return (
         <div className="min-h-screen bg-background p-8" dir="rtl">
             {/* Header */}
+            {/* Export Modal */}
+            {exportModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setExportModalOpen(false)}>
+                    <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-card w-[450px] p-8 rounded-[2rem] shadow-2xl border border-border" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center mb-6 border-b border-border pb-4">
+                            <div className="flex gap-2">
+                                <img src="/logo_new.jpeg" alt="Logo" className="w-10 h-10 rounded-lg shadow-sm border border-border" />
+                                <img src="/second_logo.png" alt="School Logo" className="w-10 h-10 rounded-lg shadow-sm border border-border" />
+                            </div>
+                            <h2 className="text-xl font-black text-foreground">تصدير التقرير المالي</h2>
+                        </div>
+                        <p className="text-muted-foreground mb-8 text-sm font-medium leading-relaxed">
+                            الرجاء اختيار صيغة التقرير المطلوب تصديره. التقرير يشمل الميزانية، مسيرات الرواتب الحالية، وملخص نفقات الذكاء الاصطناعي.
+                        </p>
+                        <div className="flex gap-4">
+                            <button onClick={() => { alert('تم تصدير التقرير بصيغة PDF بنجاح.'); setExportModalOpen(false); }} className="flex-1 flex flex-col items-center gap-3 p-5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-2xl border border-rose-200 transition-colors shadow-sm">
+                                <FileText className="w-8 h-8" />
+                                <span className="font-bold text-sm">تصدير PDF</span>
+                            </button>
+                            <button onClick={() => { alert('تم تصدير التقرير بصيغة Excel بنجاح.'); setExportModalOpen(false); }} className="flex-1 flex flex-col items-center gap-3 p-5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-2xl border border-emerald-200 transition-colors shadow-sm">
+                                <Sheet className="w-8 h-8" />
+                                <span className="font-bold text-sm">تصدير Excel</span>
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+
             <div className="flex justify-between items-center mb-8">
                 <div>
                     <h1 className="text-[28px] font-extrabold text-foreground tracking-tight">بوابة المحاسبة الذكية</h1>
-                    <p className="text-[14px] text-muted-foreground mt-1">نظام Nexus ERP - إدارة مسيرات الرواتب والموارد المالية</p>
+                    <p className="text-[14px] text-muted-foreground mt-1 font-medium">نظام Nexus ERP - إدارة مسيرات الرواتب والموارد المالية</p>
                 </div>
                 <div className="flex gap-3">
-                    <button className="flex items-center gap-2 px-4 py-2 bg-card border border-slate-200 rounded-xl text-muted-foreground font-medium hover:bg-muted/50 transition-colors shadow-sm">
+                    <button onClick={() => setExportModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-card border border-slate-200 rounded-xl text-muted-foreground font-bold hover:bg-muted/50 transition-colors shadow-sm">
                         <Download className="w-4 h-4" />
                         تصدير التقرير
                     </button>
@@ -71,7 +100,38 @@ export default function AccountantDashboard() {
                 <StatCard title="المبالغ المعلقة" value={`${pendingAmount} ر.س`} icon={Clock} color="text-amber-600" bg="bg-amber-50" />
                 <StatCard title="إجمالي الموظفين" value={employees.length.toString()} icon={Users} color="text-indigo-600" bg="bg-indigo-50" />
             </div>
-
+            {/* AI Insights & Analytics */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                <div className="lg:col-span-2 bg-card rounded-[20px] shadow-sm border border-border p-6 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-64 h-64 bg-indigo-50 dark:bg-indigo-900/10 rounded-full blur-3xl -translate-x-32 -translate-y-32" />
+                    <h3 className="text-lg font-extrabold mb-6 flex items-center gap-2 text-foreground relative z-10"><BarChart3 className="w-5 h-5 text-indigo-500"/> تحليل الميزانية الشهرية (Flow Chart)</h3>
+                    <div className="flex items-end gap-6 h-40 mt-4 relative z-10 pl-4">
+                        {[40, 70, 45, 90, 65, 80, 50].map((h, i) => (
+                            <div key={i} className="flex-1 flex flex-col items-center gap-3 h-full">
+                                <div className="w-full bg-indigo-50 dark:bg-indigo-900/20 rounded-t-xl relative group h-full flex items-end overflow-hidden">
+                                    <div className="w-full bg-indigo-500 rounded-t-xl transition-all duration-700 hover:bg-indigo-400 cursor-pointer" style={{ height: `${h}%` }}></div>
+                                    <span className="absolute bottom-2 left-1/2 -translate-x-1/2 text-white font-bold text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">{h}k</span>
+                                </div>
+                                <span className="text-xs text-muted-foreground font-bold">ش {i+1}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                <div className="bg-gradient-to-br from-rose-500/10 to-indigo-600/5 rounded-[20px] shadow-sm border border-rose-500/20 p-6 flex flex-col relative overflow-hidden">
+                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-rose-500/20 rounded-full blur-2xl" />
+                    <h3 className="text-lg font-black mb-5 flex items-center gap-2 text-rose-700 dark:text-rose-400 relative z-10"><BrainCircuit className="w-5 h-5"/> التوجيه المالي الذكي (AI)</h3>
+                    <div className="flex-1 space-y-4 relative z-10">
+                        <div className="bg-white dark:bg-black/40 p-4 rounded-2xl border border-rose-500/10 shadow-sm transition-transform hover:-translate-y-1">
+                            <p className="text-sm font-extrabold text-gray-900 dark:text-gray-100 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-emerald-500"></span> فرصة توفير 12%</p>
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5 font-medium leading-relaxed">يُظهر التحليل إمكانية تقليص نفقات التشغيل بنسبة 12% هذا الشهر بناءً على الاستهلاك.</p>
+                        </div>
+                        <div className="bg-white dark:bg-black/40 p-4 rounded-2xl border border-rose-500/10 shadow-sm transition-transform hover:-translate-y-1">
+                            <p className="text-sm font-extrabold text-gray-900 dark:text-gray-100 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-amber-500"></span> تنبؤ الرواتب القادمة</p>
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5 font-medium leading-relaxed">يتوقع الذكاء الاصطناعي زيادة 5% في ميزانية الرواتب للشهر القادم بسبب العلاوات.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
             {/* Main Automation Engine: Smart Payroll Table */}
             <div className="bg-card rounded-[20px] shadow-sm border border-border overflow-hidden">
                 <div className="p-6 border-b border-border flex justify-between items-center bg-card">

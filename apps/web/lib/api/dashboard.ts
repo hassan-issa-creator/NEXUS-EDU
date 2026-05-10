@@ -180,7 +180,7 @@ export const dashboardApi = {
   getTeacherDashboard: async (): Promise<TeacherDashboardResponse> => {
     if (typeof window !== 'undefined' && localStorage.getItem('is_demo') === 'true') {
       return {
-        teacher: { id: 'demo-teacher', name: 'Demo Teacher', schoolId: 'demo-school' },
+        teacher: { id: 'demo-teacher', name: 'فاطمة الزهراني', schoolId: 'demo-school' },
         summary: { totalClasses: 4, totalStudents: 120, totalAssignments: 25, totalLessons: 40, pendingSubmissions: 15, attendanceRate: 92 },
         classPerformance: [
           { id: 'c1', name: 'Grade 10 Math', studentCount: 30, subjectCount: 1, averageGrade: 85 },
@@ -219,16 +219,31 @@ export const dashboardApi = {
             children: [
                 {
                     id: '1',
-                    name: 'أحمد علي (نسخة تجريبية)',
+                    name: 'أحمد فيصل الغامدي',
                     grade: 'الصف العاشر',
                     avatar: '/avatars/ahmed.png',
-                    gpa: '3.8',
-                    attendance: 95,
+                    gpa: '3.9',
+                    attendanceRate: 100,
+                    attendance: { present: 45, absent: 0, late: 0, excused: 0 },
                     nextExam: 'الرياضيات - الأحد القادم',
                     recentGrades: [
                         { subject: 'الرياضيات', score: 18, total: 20 },
                         { subject: 'الفيزياء', score: 45, total: 50 },
-                    ]
+                        { subject: 'الكيمياء', score: 92, total: 100 },
+                        { subject: 'اللغة الإنجليزية', score: 95, total: 100 },
+                    ],
+                    gradeHistory: [
+                      { label: 'سبتمبر', value: 85 },
+                      { label: 'أكتوبر', value: 88 },
+                      { label: 'نوفمبر', value: 92 },
+                      { label: 'ديسمبر', value: 95 },
+                      { label: 'يناير', value: 96 }
+                    ],
+                    upcomingAssignments: [
+                      { title: 'واجب الفيزياء الفصل الثالث', subject: { name: 'الفيزياء' }, dueDate: new Date(Date.now() + 86400000).toISOString(), status: 'pending' },
+                      { title: 'تمارين الرياضيات', subject: { name: 'الرياضيات' }, dueDate: new Date(Date.now() + 172800000).toISOString(), status: 'pending' }
+                    ],
+                    gamification: { achievementsUnlocked: 5, level: 4 }
                 }
             ]
         }
