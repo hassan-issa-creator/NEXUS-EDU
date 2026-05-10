@@ -40,18 +40,48 @@ function KpiCard({ label, value, icon: Icon, color, sub }: { label: string; valu
   )
 }
 
+// Fallback data when API is unavailable
+const FALLBACK_DATA: TeacherDashboardResponse = {
+  teacher: { name: 'فاطمة الزهراني', email: 'teacher@nexusedu.sa', subject: 'الرياضيات' },
+  summary: { totalStudents: 120, totalClasses: 5, totalAssignments: 18, totalLessons: 42, pendingSubmissions: 7 },
+  classPerformance: [
+    { name: 'الصف 10-أ', averageGrade: 82, studentCount: 28 },
+    { name: 'الصف 10-ب', averageGrade: 74, studentCount: 25 },
+    { name: 'الصف 11-أ', averageGrade: 88, studentCount: 30 },
+    { name: 'الصف 11-ب', averageGrade: 69, studentCount: 22 },
+    { name: 'الصف 12-أ', averageGrade: 91, studentCount: 27 },
+  ],
+  recentAssignments: [
+    { id: '1', title: 'حل معادلات من الدرجة الثانية', subject: 'الرياضيات', submissions: 18 },
+    { id: '2', title: 'تدريبات المتتاليات والمتسلسلات', subject: 'الرياضيات', submissions: 12 },
+    { id: '3', title: 'مسائل الاحتمالات التطبيقية', subject: 'الرياضيات', submissions: 9 },
+  ],
+  attendanceSummary: { totalRecords: 120, present: 108, absent: 12 },
+  interventionAlerts: [
+    { id: '1', title: 'تنبيه: 3 طلاب بحاجة متابعة', body: 'انخفاض في الدرجات خلال الأسبوعين الماضيين في الصف 11-ب' },
+  ],
+  gradingQueue: [],
+} as any;
+
 export default function TeacherDashboardPage() {
   const [data, setData] = useState<TeacherDashboardResponse | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [usingFallback, setUsingFallback] = useState(false)
   const [liveNotif, setLiveNotif] = useState<string | null>(null)
 
   const load = useCallback(async () => {
+    setLoading(true)
     try {
       const d = await dashboardApi.getTeacherDashboard()
       setData(d)
-    } catch { setError('تعذر تحميل بيانات لوحة التحكم') }
-    finally { setLoading(false) }
+      setUsingFallback(false)
+    } catch {
+      // Show fallback data instead of error screen
+      setData(FALLBACK_DATA)
+      setUsingFallback(true)
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -69,16 +99,6 @@ export default function TeacherDashboardPage() {
         </div>
       </div>
       <p className="text-sm text-gray-500 font-medium animate-pulse">جاري تحميل لوحة المعلم...</p>
-    </div>
-  )
-
-  if (error || !data) return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-      <div className="w-20 h-20 bg-rose-50 dark:bg-rose-500/10 rounded-full flex items-center justify-center">
-        <AlertCircle className="w-10 h-10 text-rose-500" />
-      </div>
-      <p className="text-xl font-bold text-gray-900 dark:text-white">{error || 'لا توجد بيانات'}</p>
-      <button onClick={load} className="px-6 py-3 bg-teal-600 text-white font-bold rounded-xl text-sm shadow-lg shadow-teal-500/30">إعادة المحاولة</button>
     </div>
   )
 
@@ -103,6 +123,16 @@ export default function TeacherDashboardPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Offline/Fallback Banner */}
+      {usingFallback && (
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 px-5 py-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-2xl text-amber-700 dark:text-amber-400 text-sm font-bold">
+          <AlertCircle className="w-4 h-4 flex-shrink-0 animate-pulse" />
+          <span>لا يمكن الاتصال بالخادم — يتم عرض بيانات تجريبية. </span>
+          <button onClick={load} className="underline font-black hover:no-underline">إعادة الاتصال</button>
+        </motion.div>
+      )}
 
       {/* Live Banner */}
       <LiveClassBanner />

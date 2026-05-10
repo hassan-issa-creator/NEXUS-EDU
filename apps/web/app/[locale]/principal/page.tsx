@@ -4,11 +4,12 @@ import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { dashboardApi } from '@/lib/api/dashboard';
 import { apiClient } from '@/lib/api/client';
+import { useAuth } from '@/contexts/auth-context';
 import { SocketProvider, useRealtimeNotifications } from '@/lib/providers/socket-provider';
 import {
   Users, BookOpen, TrendingUp, AlertCircle, CheckCircle2, Calendar,
   Award, BarChart3, UserCheck, Clock, FileText, Shield, Zap, BrainCircuit,
-  Loader2, School, Activity, Bell, Star, RefreshCw
+  Loader2, School, Activity, Bell, Star, RefreshCw, MessageCircle
 } from 'lucide-react';
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -72,6 +73,7 @@ function PrincipalDashboardInner() {
   const [aiLoading, setAiLoading] = useState(false);
   const [liveNotif, setLiveNotif] = useState<string | null>(null);
   const [exportModalOpen, setExportModalOpen] = useState(false);
+  const { signOut } = useAuth();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -111,6 +113,8 @@ function PrincipalDashboardInner() {
       </div>
     </div>
   );
+
+  // Always render with fallback data - never show blank page
 
   const kpis = adminData?.kpis || {};
   const fallbackKpis = {
@@ -247,15 +251,30 @@ function PrincipalDashboardInner() {
               ))}
             </div>
 
-            <div className="mt-8 flex gap-3">
-              <button onClick={() => setExportModalOpen(true)} className="flex items-center gap-2 px-6 py-2.5 bg-white text-indigo-900 rounded-xl font-bold text-sm shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:bg-indigo-50 transition-colors border border-indigo-100">
-                <FileText className="w-4 h-4" /> تصدير تقرير شامل
+            <div className="mt-8 flex gap-3 no-print">
+              <button onClick={() => setExportModalOpen(true)} className="bg-white text-indigo-700 hover:bg-indigo-50 px-6 py-3 rounded-xl font-bold text-sm shadow-lg shadow-black/5 transition-all flex items-center gap-2">
+                <FileText className="w-4 h-4" /> تصدير التقرير
               </button>
-              <button onClick={() => { sessionStorage.clear(); window.location.href='/login'; }} className="flex items-center gap-2 px-6 py-2.5 bg-rose-500/20 text-rose-100 rounded-xl font-bold text-sm shadow-sm hover:bg-rose-500/40 transition-colors border border-rose-500/30">
+              <a href="https://wa.me/201098810794" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-6 py-3 bg-[#25D366] text-white hover:bg-[#25D366]/90 rounded-xl font-bold text-sm transition-colors shadow-lg">
+                <MessageCircle className="w-4 h-4" />
+                الدعم الفني
+              </a>
+              <button onClick={() => signOut()} className="flex items-center gap-2 px-6 py-3 bg-rose-500/20 text-rose-100 hover:bg-rose-500/40 rounded-xl font-bold text-sm transition-colors border border-rose-500/30">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
                 تسجيل الخروج
               </button>
             </div>
+            
+            {/* Print Header */}
+            <div className="hidden print-only mt-8 text-center bg-white p-6 rounded-2xl w-full">
+                <div className="flex justify-center gap-4 mb-4">
+                    <img src="/logo_new.jpeg" alt="Logo" className="w-20 h-20 rounded-xl border border-gray-200" />
+                    <img src="/second_logo.png" alt="School Logo" className="w-20 h-20 rounded-xl border border-gray-200" />
+                </div>
+                <h2 className="text-3xl font-black mb-2 text-black">التقرير الإداري الشامل للمدرسة</h2>
+                <p className="text-gray-600 font-medium">نظام Nexus EDU - الإحصائيات والأداء المدرسي</p>
+            </div>
+          </div>
 
           {/* AI Summary Card */}
           <div className="w-full md:w-80 bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 shadow-xl relative overflow-hidden group">

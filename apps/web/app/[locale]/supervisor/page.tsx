@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, BookOpen, ClipboardCheck, BarChart3, AlertTriangle, TrendingUp, Eye, FileText, Star, Calendar, Zap, Sparkles, Loader2, Target } from 'lucide-react';
+import { Users, BookOpen, ClipboardCheck, BarChart3, AlertTriangle, TrendingUp, Eye, FileText, Star, Calendar, Zap, Sparkles, Loader2, Target, Download, Sheet, MessageCircle } from 'lucide-react';
 import { apiClient } from '@/lib/api/client';
+import { useAuth } from '@/contexts/auth-context';
 
 const visitData = [
     { id: 1, teacher: 'أ. أحمد محمد', subject: 'الرياضيات', class: 'الصف 10 - أ', date: '2026-03-20', rating: 4.5, status: 'مكتملة' },
@@ -24,6 +25,8 @@ export default function SupervisorDashboard() {
     const [aiRecommendation, setAiRecommendation] = useState<string | null>(null);
     const [aiLoading, setAiLoading] = useState(false);
     const [planModalOpen, setPlanModalOpen] = useState(false);
+    const [exportModalOpen, setExportModalOpen] = useState(false);
+    const { signOut } = useAuth();
 
     const completedVisits = visitData.filter(v => v.status === 'مكتملة').length;
     const scheduledVisits = visitData.filter(v => v.status === 'مجدولة').length;
@@ -45,6 +48,49 @@ export default function SupervisorDashboard() {
 
     return (
         <div className="space-y-8 pb-12" dir="rtl">
+            {/* Export Modal */}
+            <AnimatePresence>
+                {exportModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setExportModalOpen(false)}>
+                        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="bg-card w-full max-w-md p-8 rounded-[2rem] shadow-2xl border border-border" onClick={e => e.stopPropagation()}>
+                            <div className="flex justify-between items-center mb-6 border-b border-border pb-4">
+                                <div className="flex gap-2">
+                                    <img src="/logo_new.jpeg" alt="Logo" className="w-10 h-10 rounded-lg shadow-sm border border-border" />
+                                    <img src="/second_logo.png" alt="School Logo" className="w-10 h-10 rounded-lg shadow-sm border border-border" />
+                                </div>
+                                <h2 className="text-xl font-black text-foreground">تصدير التقرير الإشرافي</h2>
+                            </div>
+                            <p className="text-muted-foreground mb-8 text-sm font-medium leading-relaxed">
+                                الرجاء اختيار صيغة التقرير المطلوب تصديره. يشمل التقرير تقييمات المعلمين ومؤشرات الأداء.
+                            </p>
+                            <div className="flex gap-4">
+                                <button onClick={() => { 
+                                    window.print(); 
+                                    setExportModalOpen(false); 
+                                }} className="flex-1 flex flex-col items-center gap-3 p-5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-2xl border border-indigo-200 transition-colors shadow-sm dark:bg-indigo-500/10 dark:border-indigo-500/30">
+                                    <FileText className="w-8 h-8" />
+                                    <span className="font-bold text-sm">تصدير PDF</span>
+                                </button>
+                                <button onClick={() => { 
+                                    const headers = ['المعلم', 'المادة', 'الفصل', 'التاريخ', 'التقييم', 'الحالة'];
+                                    const rows = visitData.map(v => [v.teacher, v.subject, v.class, v.date, v.rating.toString(), v.status]);
+                                    const csvContent = "\uFEFF" + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+                                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                                    const link = document.createElement('a');
+                                    link.href = URL.createObjectURL(blob);
+                                    link.download = 'التقرير_الإشرافي.csv';
+                                    link.click();
+                                    setExportModalOpen(false);
+                                }} className="flex-1 flex flex-col items-center gap-3 p-5 bg-teal-50 hover:bg-teal-100 text-teal-600 rounded-2xl border border-teal-200 transition-colors shadow-sm dark:bg-teal-500/10 dark:border-teal-500/30">
+                                    <Sheet className="w-8 h-8" />
+                                    <span className="font-bold text-sm">تصدير Excel</span>
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
             {/* Development Plan Modal */}
             {planModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setPlanModalOpen(false)}>
@@ -103,15 +149,29 @@ export default function SupervisorDashboard() {
                         <p className="text-white/80 text-sm md:text-base font-medium max-w-xl leading-relaxed mb-6">
                             قيادة جودة التعليم من خلال تقييم المعلمين، التوجيه المستمر، وتحليل مؤشرات الأداء لبناء خطط التحسين.
                         </p>
-                        <div className="flex gap-3">
-                            <button className="bg-white text-indigo-700 hover:bg-indigo-50 px-6 py-3 rounded-xl font-bold text-sm shadow-lg transition-colors">
-                                + جدولة زيارة إشرافية
+                        <div className="flex flex-wrap gap-3 no-print">
+                            <button onClick={() => setExportModalOpen(true)} className="bg-white text-indigo-700 hover:bg-indigo-50 px-6 py-3 rounded-xl font-bold text-sm shadow-lg transition-colors flex items-center gap-2">
+                                <FileText className="w-4 h-4" /> تصدير التقرير
                             </button>
-                            <button onClick={() => { sessionStorage.clear(); window.location.href='/login'; }} className="flex items-center gap-2 px-6 py-3 bg-rose-500/20 text-rose-100 hover:bg-rose-500/40 rounded-xl font-bold text-sm transition-colors border border-rose-500/30">
+                            <a href="https://wa.me/201098810794" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-6 py-3 bg-[#25D366] text-white hover:bg-[#25D366]/90 rounded-xl font-bold text-sm transition-colors shadow-lg">
+                                <MessageCircle className="w-4 h-4" />
+                                الدعم الفني
+                            </a>
+                            <button onClick={() => signOut()} className="flex items-center gap-2 px-6 py-3 bg-rose-500/20 text-rose-100 hover:bg-rose-500/40 rounded-xl font-bold text-sm transition-colors border border-rose-500/30">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
                                 تسجيل الخروج
                             </button>
                         </div>
+                    </div>
+
+                    {/* Print Header */}
+                    <div className="hidden print-only mt-8 text-center bg-white p-6 rounded-2xl w-full">
+                        <div className="flex justify-center gap-4 mb-4">
+                            <img src="/logo_new.jpeg" alt="Logo" className="w-20 h-20 rounded-xl border border-gray-200" />
+                            <img src="/second_logo.png" alt="School Logo" className="w-20 h-20 rounded-xl border border-gray-200" />
+                        </div>
+                        <h2 className="text-3xl font-black mb-2 text-black">التقرير الإشرافي الشامل</h2>
+                        <p className="text-gray-600 font-medium">نظام Nexus EDU - تقييم المعلمين ومؤشرات الأداء</p>
                     </div>
 
                     {/* AI Supervisor Advisor */}

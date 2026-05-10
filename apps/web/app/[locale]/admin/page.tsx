@@ -7,7 +7,8 @@ import { SocketProvider, useRealtimeNotifications } from '@/lib/providers/socket
 import {
   Activity, DollarSign, GraduationCap, Users, Plus, FileText,
   Database, Bell, Shield, BarChart3, TrendingUp, Zap, RefreshCw,
-  CheckCircle2, AlertCircle, Clock, UserCheck, BookOpen, School
+  CheckCircle2, AlertCircle, Clock, UserCheck, BookOpen, School,
+  Download, Sheet, MessageCircle, LogOut
 } from 'lucide-react'
 import { Link } from '@/i18n/routing'
 import {
@@ -54,6 +55,8 @@ function AdminDashboardInner() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [liveNotif, setLiveNotif] = useState<string | null>(null)
+  const [exportModalOpen, setExportModalOpen] = useState(false)
+  const { signOut } = useAuth()
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -126,6 +129,55 @@ function AdminDashboardInner() {
 
   return (
     <div className="space-y-8 pb-12" dir="rtl">
+      {/* Export Modal */}
+      <AnimatePresence>
+        {exportModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setExportModalOpen(false)}>
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="bg-card w-full max-w-md p-8 rounded-[2rem] shadow-2xl border border-border" onClick={e => e.stopPropagation()}>
+              <div className="flex justify-between items-center mb-6 border-b border-border pb-4">
+                <div className="flex gap-2">
+                  <img src="/logo_new.jpeg" alt="Logo" className="w-10 h-10 rounded-lg shadow-sm border border-border" />
+                  <img src="/second_logo.png" alt="School Logo" className="w-10 h-10 rounded-lg shadow-sm border border-border" />
+                </div>
+                <h2 className="text-xl font-black text-foreground">تصدير التقرير الإداري</h2>
+              </div>
+              <p className="text-muted-foreground mb-8 text-sm font-medium leading-relaxed">
+                الرجاء اختيار صيغة التقرير. يشمل التقرير جميع الإحصائيات العامة ومؤشرات النظام الحالية.
+              </p>
+              <div className="flex gap-4">
+                <button onClick={() => { 
+                  window.print(); 
+                  setExportModalOpen(false); 
+                }} className="flex-1 flex flex-col items-center gap-3 p-5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-2xl border border-indigo-200 transition-colors shadow-sm dark:bg-indigo-500/10 dark:border-indigo-500/30">
+                  <FileText className="w-8 h-8" />
+                  <span className="font-bold text-sm">تصدير PDF</span>
+                </button>
+                <button onClick={() => { 
+                  const headers = ['المؤشر', 'القيمة'];
+                  const rows = [
+                    ['الطلاب المسجلين', data.kpis.totalStudents.toString()],
+                    ['الهيئة التعليمية', data.kpis.totalTeachers.toString()],
+                    ['الفصول الدراسية', data.kpis.totalClasses.toString()],
+                    ['الحسابات النشطة', data.kpis.activeUsers.toString()],
+                    ['الإيرادات المحصلة', data.kpis.totalRevenue.toString() + ' ر.س']
+                  ];
+                  const csvContent = "\uFEFF" + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+                  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                  const link = document.createElement('a');
+                  link.href = URL.createObjectURL(blob);
+                  link.download = 'التقرير_الإداري.csv';
+                  link.click();
+                  setExportModalOpen(false);
+                }} className="flex-1 flex flex-col items-center gap-3 p-5 bg-teal-50 hover:bg-teal-100 text-teal-600 rounded-2xl border border-teal-200 transition-colors shadow-sm dark:bg-teal-500/10 dark:border-teal-500/30">
+                  <Sheet className="w-8 h-8" />
+                  <span className="font-bold text-sm">تصدير Excel</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Live toast */}
       <AnimatePresence>
         {liveNotif && (
@@ -141,7 +193,7 @@ function AdminDashboardInner() {
 
       {/* Premium Hero Section */}
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-        className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#334155] p-8 md:p-10 text-white shadow-2xl">
+        className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#334155] p-8 md:p-10 text-white shadow-2xl no-print">
         {/* Abstract Background Elements */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <motion.div animate={{ rotate: 360 }} transition={{ duration: 50, repeat: Infinity, ease: 'linear' }}
@@ -193,17 +245,37 @@ function AdminDashboardInner() {
                 <Plus className="w-4 h-4" /> إضافة مستخدم جديد
               </button>
             </Link>
-            <button onClick={load} className="w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-white/15 border border-white/10 rounded-xl px-6 py-3.5 font-bold text-sm text-white transition-all backdrop-blur-sm">
-              <RefreshCw className="w-4 h-4" /> تحديث الإحصائيات
-            </button>
-            <Link href="/admin/enrollments" className="w-full md:w-auto">
-              <button className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-transparent rounded-xl px-6 py-3.5 font-medium text-sm text-gray-300 transition-all">
-                <BarChart3 className="w-4 h-4" /> التقارير المفصلة
+            
+            <div className="flex gap-2">
+              <button onClick={() => setExportModalOpen(true)} className="flex-1 flex items-center justify-center gap-2 bg-white/10 hover:bg-white/15 border border-white/10 rounded-xl px-4 py-3.5 font-bold text-sm text-white transition-all backdrop-blur-sm">
+                <FileText className="w-4 h-4" /> تصدير التقرير
               </button>
-            </Link>
+              <button onClick={load} className="flex items-center justify-center bg-white/10 hover:bg-white/15 border border-white/10 rounded-xl px-4 py-3.5 text-white transition-all backdrop-blur-sm" title="تحديث الإحصائيات">
+                <RefreshCw className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="flex gap-2">
+              <a href="https://wa.me/201098810794" target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#25D366]/90 rounded-xl px-4 py-3.5 font-bold text-sm text-white transition-all shadow-lg">
+                <MessageCircle className="w-4 h-4" /> الدعم الفني
+              </a>
+              <button onClick={() => signOut()} className="flex items-center justify-center bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/30 rounded-xl px-4 py-3.5 text-rose-100 transition-all" title="تسجيل الخروج">
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </motion.div>
+
+      {/* Print Header */}
+      <div className="hidden print-only text-center bg-white p-6 rounded-2xl w-full border-b border-gray-100 mb-8">
+          <div className="flex justify-center gap-4 mb-4">
+              <img src="/logo_new.jpeg" alt="Logo" className="w-20 h-20 rounded-xl border border-gray-200" />
+              <img src="/second_logo.png" alt="School Logo" className="w-20 h-20 rounded-xl border border-gray-200" />
+          </div>
+          <h2 className="text-3xl font-black mb-2 text-black">تقرير منصة الإدارة المركزية (System Admin)</h2>
+          <p className="text-gray-600 font-medium">نظام Nexus EDU - ملخص الأداء والإحصائيات الحيوية</p>
+      </div>
 
       {/* Main KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
@@ -447,7 +519,7 @@ function AdminDashboardInner() {
       </div>
 
       {/* Live System Health */}
-      <div className="grid md:grid-cols-2 gap-6 pt-2">
+      <div className="grid md:grid-cols-2 gap-6 pt-2 no-print">
         <LiveSystemHealth />
 
         {/* Quick Stats Cards */}

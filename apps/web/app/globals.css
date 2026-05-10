@@ -1143,3 +1143,34 @@
 .underline-expand:hover::after {
   width: 100%;
 }
+
+/* ══════════════════════════════════════════════════
+   PRINT MEDIA STYLES FOR REPORTS
+   ══════════════════════════════════════════════════ */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    color-adjust: exact;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .glass-card, .glass-glow, .premium-card {
+    box-shadow: none !important;
+    border: 1px solid #e2e8f0 !important;
+    background: white !important;
+    backdrop-filter: none !important;
+  }
+
+  @page {
+    margin: 1cm;
+  }
+}

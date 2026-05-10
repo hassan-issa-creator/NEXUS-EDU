@@ -213,7 +213,7 @@ export function Sidebar({ role }: SidebarProps) {
                 initial={false}
                 animate={{ width: collapsed ? 72 : 256 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                className="hidden lg:flex flex-col h-screen sticky top-0 bg-card border-l border-border z-50 shadow-sm overflow-hidden"
+                className="hidden lg:flex flex-col h-screen sticky top-0 bg-card border-l border-border z-50 shadow-sm overflow-hidden no-print"
             >
                 <SidebarContent />
             </motion.div>

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { DollarSign, Users, CheckCircle, Clock, Wallet, Search, Filter, Download, FileText, Sheet, BarChart3, BrainCircuit } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { useAuth } from '@/contexts/auth-context';
 
 const budgetData = [
   { name: 'ش 1', الميزانية: 40000, المصروفات: 24000 },
@@ -36,6 +37,7 @@ export default function AccountantDashboard() {
     const [employees, setEmployees] = useState(initialEmployees);
     const [searchQuery, setSearchQuery] = useState('');
     const [exportModalOpen, setExportModalOpen] = useState(false);
+    const { signOut } = useAuth();
 
     const totalPayroll = employees.reduce((sum, emp) => sum + emp.salary, 0);
     const paidAmount = employees.filter(e => e.status === 'paid').reduce((sum, emp) => sum + emp.salary, 0);
@@ -107,17 +109,17 @@ export default function AccountantDashboard() {
                 </div>
             )}
 
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex justify-between items-center mb-8 no-print">
                 <div>
                     <h1 className="text-[28px] font-extrabold text-foreground tracking-tight">بوابة المحاسبة الذكية</h1>
                     <p className="text-[14px] text-muted-foreground mt-1 font-medium">نظام Nexus ERP - إدارة مسيرات الرواتب والموارد المالية</p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex gap-3 no-print">
                     <button onClick={() => setExportModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-card border border-slate-200 rounded-xl text-muted-foreground font-bold hover:bg-muted/50 transition-colors shadow-sm">
                         <Download className="w-4 h-4" />
                         تصدير التقرير
                     </button>
-                    <button onClick={() => window.location.href='/login'} className="flex items-center justify-center w-10 h-10 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl transition-colors border border-red-100 shadow-sm" title="تسجيل الخروج">
+                    <button onClick={() => signOut()} className="flex items-center justify-center w-10 h-10 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl transition-colors border border-red-100 shadow-sm" title="تسجيل الخروج">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
                     </button>
                     <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center border-2 border-white shadow-md">
@@ -134,7 +136,7 @@ export default function AccountantDashboard() {
                 <StatCard title="إجمالي الموظفين" value={employees.length.toString()} icon={Users} color="text-indigo-600" bg="bg-indigo-50" />
             </div>
             {/* AI Insights & Analytics */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 no-print">
                 <div className="lg:col-span-2 bg-card rounded-[20px] shadow-sm border border-border p-6 relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-64 h-64 bg-indigo-50 dark:bg-indigo-900/10 rounded-full blur-3xl -translate-x-32 -translate-y-32" />
                     <h3 className="text-lg font-extrabold mb-6 flex items-center gap-2 text-foreground relative z-10"><BarChart3 className="w-5 h-5 text-indigo-500"/> تحليل الميزانية الشهرية (Flow Chart)</h3>
@@ -183,14 +185,14 @@ export default function AccountantDashboard() {
             </div>
             {/* Main Automation Engine: Smart Payroll Table */}
             <div className="bg-card rounded-[20px] shadow-sm border border-border overflow-hidden">
-                <div className="p-6 border-b border-border flex justify-between items-center bg-card">
+                <div className="p-6 border-b border-border flex justify-between items-center bg-card no-print">
                     <div>
                         <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
                             <DollarSign className="w-5 h-5 text-rose-500" />
                             مسير رواتب الشهر الحالي (موظفين الشهر)
                         </h2>
                     </div>
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 no-print">
                         <div className="relative">
                             <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/80" />
                             <input 
@@ -216,7 +218,7 @@ export default function AccountantDashboard() {
                                 <th className="p-4">الراتب الأساسي</th>
                                 <th className="p-4">تاريخ الصرف</th>
                                 <th className="p-4">حالة الصرف</th>
-                                <th className="p-4 pr-6 text-left">الإجراء السريع</th>
+                                <th className="p-4 pr-6 text-left no-print">الإجراء السريع</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -247,7 +249,7 @@ export default function AccountantDashboard() {
                                             </span>
                                         )}
                                     </td>
-                                    <td className="p-4 pr-6 text-left">
+                                    <td className="p-4 pr-6 text-left no-print">
                                         {emp.status === 'pending' ? (
                                             <button 
                                                 onClick={() => handlePay(emp.id)}

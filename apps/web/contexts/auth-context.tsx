@@ -104,6 +104,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         sessionStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
         sessionStorage.removeItem(DEMO_FLAG_STORAGE_KEY);
         sessionStorage.removeItem(DEMO_PROFILE_STORAGE_KEY);
+        // Also clear localStorage to prevent stale sessions
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('nexus_role');
+        localStorage.removeItem('nexus_user');
     };
 
     const setAuthenticatedState = (nextUser: User, nextProfile: UserProfile) => {
@@ -363,6 +367,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
 
             if (apiBaseUrl) {
+                // Clear any previous session before signing in with new credentials
+                clearLocalApiSession();
+                
                 const response = await fetch(`${apiBaseUrl}/auth/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -513,11 +520,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 }).catch(() => undefined);
             }
 
-            if (supabase && session) {
-                const { error } = await supabase.auth.signOut();
-                if (error) {
-                    throw error;
-                }
+            if (supabase) {
+                await supabase.auth.signOut().catch(() => undefined);
             }
 
             clearLocalApiSession();
@@ -525,10 +529,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setProfile(null);
             setSession(null);
             
-            // Force a hard reload to clear all memory state instead of client-side routing
-            window.location.href = '/login';
+            // Force a hard reload to clear all memory state
+            window.location.href = '/ar/login';
         } catch (error: any) {
-            throw new Error(error.message || 'حدث خطأ في تسجيل الخروج');
+            // Even on error, clear local state and redirect
+            clearLocalApiSession();
+            setUser(null);
+            setProfile(null);
+            setSession(null);
+            window.location.href = '/ar/login';
         }
     };
 

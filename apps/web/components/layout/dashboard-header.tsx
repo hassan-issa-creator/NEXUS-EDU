@@ -82,7 +82,7 @@ export function DashboardHeader({ title, onMenuClick }: DashboardHeaderProps) {
     const pageTitle = title || getPageTitle(pathname)
 
     return (
-        <header className="sticky top-0 z-40 bg-card/80 backdrop-blur-md border-b border-border px-4 lg:px-6 h-14 lg:h-16 flex items-center justify-between transition-all duration-200">
+        <header className="sticky top-0 z-40 bg-card/80 backdrop-blur-md border-b border-border px-4 lg:px-6 h-14 lg:h-16 flex items-center justify-between transition-all duration-200 no-print">
             <div className="flex items-center gap-3">
                 {/* Mobile spacer for hamburger button */}
                 <div className="w-10 lg:hidden" />

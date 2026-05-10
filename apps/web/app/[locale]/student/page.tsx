@@ -32,15 +32,44 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null
 }
 
+const FALLBACK_STUDENT_DATA: StudentDashboardResponse = {
+  student: { id: 'demo', name: 'أحمد فيصل الغامدي', email: 'student@nexusedu.sa', grade: 'الصف 11' },
+  summary: { totalSubjects: 6, pendingAssignments: 4, completedAssignments: 23, averageGrade: 84, totalLessons: 48 },
+  upcomingAssignments: [
+    { id: '1', title: 'حل تمارين الفصل السادس', subject: 'الرياضيات', dueDate: new Date(Date.now() + 86400000).toISOString(), status: 'PENDING' },
+    { id: '2', title: 'تلخيص قصيدة المتنبي', subject: 'اللغة العربية', dueDate: new Date(Date.now() + 172800000).toISOString(), status: 'PENDING' },
+    { id: '3', title: 'تقرير تجربة المختبر', subject: 'الكيمياء', dueDate: new Date(Date.now() + 259200000).toISOString(), status: 'PENDING' },
+  ],
+  attendance: { present: 92, absent: 5, late: 3, excused: 0 },
+  subjectPerformance: [
+    { id: '1', name: 'الرياضيات', teacher: 'أ. فاطمة الزهراني', averageGrade: 88, totalLessons: 20, submittedAssignments: 8, totalAssignments: 9 },
+    { id: '2', name: 'اللغة العربية', teacher: 'أ. أحمد سعيد', averageGrade: 92, totalLessons: 18, submittedAssignments: 7, totalAssignments: 8 },
+    { id: '3', name: 'الفيزياء', teacher: 'أ. خالد الغامدي', averageGrade: 76, totalLessons: 16, submittedAssignments: 5, totalAssignments: 6 },
+    { id: '4', name: 'الكيمياء', teacher: 'أ. ياسر الشهراني', averageGrade: 81, totalLessons: 14, submittedAssignments: 6, totalAssignments: 7 },
+    { id: '5', name: 'الإنجليزية', teacher: 'أ. طارق الزهراني', averageGrade: 85, totalLessons: 12, submittedAssignments: 4, totalAssignments: 5 },
+    { id: '6', name: 'التاريخ', teacher: 'أ. نورة سعد', averageGrade: 79, totalLessons: 10, submittedAssignments: 3, totalAssignments: 4 },
+  ],
+  gamification: { level: 7, totalXP: 3450, streakDays: 12, achievementsUnlocked: 8 },
+  weeklyActivity: [
+    { label: 'الأحد', submissions: 2, attended: 1 }, { label: 'الاثنين', submissions: 3, attended: 1 },
+    { label: 'الثلاثاء', submissions: 1, attended: 1 }, { label: 'الأربعاء', submissions: 4, attended: 1 },
+    { label: 'الخميس', submissions: 2, attended: 1 }, { label: 'الجمعة', submissions: 1, attended: 0 },
+    { label: 'السبت', submissions: 0, attended: 0 },
+  ],
+} as any;
+
 export default function StudentDashboardPage() {
   const [data, setData] = useState<StudentDashboardResponse | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [usingFallback, setUsingFallback] = useState(false)
   const [liveAssignments, setLiveAssignments] = useState<any[]>([])
   const [liveNotif, setLiveNotif] = useState<string | null>(null)
 
   useEffect(() => {
-    dashboardApi.getStudentDashboard().then(setData).catch(() => setError('تعذر تحميل البيانات')).finally(() => setLoading(false))
+    dashboardApi.getStudentDashboard()
+      .then(d => { setData(d); setUsingFallback(false); })
+      .catch(() => { setData(FALLBACK_STUDENT_DATA); setUsingFallback(true); })
+      .finally(() => setLoading(false))
   }, [])
 
   useRealtimeAssignments(useCallback((a: any) => {
@@ -64,16 +93,6 @@ export default function StudentDashboardPage() {
         </div>
       </div>
       <p className="text-sm text-gray-500 font-medium animate-pulse">جاري تحميل لوحة تحكمك...</p>
-    </div>
-  )
-
-  if (error || !data) return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-      <div className="w-20 h-20 bg-rose-50 dark:bg-rose-500/10 rounded-full flex items-center justify-center">
-        <AlertCircle className="w-10 h-10 text-rose-500" />
-      </div>
-      <p className="text-xl font-bold text-gray-900 dark:text-white">{error || 'لا توجد بيانات متاحة'}</p>
-      <button onClick={() => window.location.reload()} className="px-6 py-3 bg-violet-600 text-white font-bold rounded-xl text-sm shadow-lg shadow-violet-500/30">إعادة المحاولة</button>
     </div>
   )
 
@@ -103,6 +122,16 @@ export default function StudentDashboardPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Offline/Fallback Banner */}
+      {usingFallback && (
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 px-5 py-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-2xl text-amber-700 dark:text-amber-400 text-sm font-bold">
+          <AlertCircle className="w-4 h-4 flex-shrink-0 animate-pulse" />
+          <span>عرض بيانات تجريبية — تعذر الاتصال بالخادم</span>
+          <button onClick={() => window.location.reload()} className="underline font-black hover:no-underline mr-auto">إعادة الاتصال</button>
+        </motion.div>
+      )}
 
       {/* ─── HERO BANNER ─── */}
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 180 }}

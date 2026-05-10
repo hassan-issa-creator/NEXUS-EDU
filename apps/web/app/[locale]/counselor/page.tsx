@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, Users, AlertCircle, FileText, MessageSquare, Brain, Shield, Calendar, TrendingDown, BookOpen, Zap, HeartHandshake, Loader2, Sparkles } from 'lucide-react';
+import { Heart, Users, AlertCircle, FileText, MessageSquare, Brain, Shield, Calendar, TrendingDown, BookOpen, Zap, HeartHandshake, Loader2, Sparkles, Download, Sheet, MessageCircle } from 'lucide-react';
 import { apiClient } from '@/lib/api/client';
+import { useAuth } from '@/contexts/auth-context';
 
 const studentCases = [
     { id: 1, student: 'فهد خالد', grade: 'الصف 11 - أ', type: 'سلوكي', status: 'قيد المتابعة', urgency: 'high', desc: 'ميل للعزلة وانخفاض في التحصيل' },
@@ -29,6 +30,8 @@ const wellbeingMetrics = [
 export default function CounselorDashboard() {
     const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
     const [aiLoading, setAiLoading] = useState(false);
+    const [exportModalOpen, setExportModalOpen] = useState(false);
+    const { signOut } = useAuth();
 
     const generateAiAnalysis = async () => {
         setAiLoading(true);
@@ -46,6 +49,49 @@ export default function CounselorDashboard() {
 
     return (
         <div className="space-y-8 pb-12" dir="rtl">
+            {/* Export Modal */}
+            <AnimatePresence>
+                {exportModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setExportModalOpen(false)}>
+                        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="bg-card w-full max-w-md p-8 rounded-[2rem] shadow-2xl border border-border" onClick={e => e.stopPropagation()}>
+                            <div className="flex justify-between items-center mb-6 border-b border-border pb-4">
+                                <div className="flex gap-2">
+                                    <img src="/logo_new.jpeg" alt="Logo" className="w-10 h-10 rounded-lg shadow-sm border border-border" />
+                                    <img src="/second_logo.png" alt="School Logo" className="w-10 h-10 rounded-lg shadow-sm border border-border" />
+                                </div>
+                                <h2 className="text-xl font-black text-foreground">تصدير تقرير الحالات</h2>
+                            </div>
+                            <p className="text-muted-foreground mb-8 text-sm font-medium leading-relaxed">
+                                الرجاء اختيار صيغة التقرير المطلوب تصديره. يشمل التقرير سجلات الطلاب ومؤشرات الرفاهية المدرسية.
+                            </p>
+                            <div className="flex gap-4">
+                                <button onClick={() => { 
+                                    window.print(); 
+                                    setExportModalOpen(false); 
+                                }} className="flex-1 flex flex-col items-center gap-3 p-5 bg-teal-50 hover:bg-teal-100 text-teal-600 rounded-2xl border border-teal-200 transition-colors shadow-sm dark:bg-teal-500/10 dark:border-teal-500/30">
+                                    <FileText className="w-8 h-8" />
+                                    <span className="font-bold text-sm">تصدير PDF</span>
+                                </button>
+                                <button onClick={() => { 
+                                    const headers = ['الطالب', 'الصف', 'النوع', 'الحالة', 'الوصف'];
+                                    const rows = studentCases.map(s => [s.student, s.grade, s.type, s.status, s.desc]);
+                                    const csvContent = "\uFEFF" + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+                                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                                    const link = document.createElement('a');
+                                    link.href = URL.createObjectURL(blob);
+                                    link.download = 'تقرير_الإرشاد_الطلابي.csv';
+                                    link.click();
+                                    setExportModalOpen(false);
+                                }} className="flex-1 flex flex-col items-center gap-3 p-5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-2xl border border-indigo-200 transition-colors shadow-sm dark:bg-indigo-500/10 dark:border-indigo-500/30">
+                                    <Sheet className="w-8 h-8" />
+                                    <span className="font-bold text-sm">تصدير Excel</span>
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
             {/* HERO */}
             <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
                 className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-teal-700 via-cyan-700 to-emerald-700 p-8 md:p-10 text-white shadow-[0_20px_50px_rgba(13,148,136,0.25)]">
@@ -65,15 +111,32 @@ export default function CounselorDashboard() {
                         <p className="text-white/80 text-sm md:text-base font-medium max-w-xl leading-relaxed mb-6">
                             متابعة دقيقة للحالات النفسية والسلوكية، وقياس مستوى جودة الحياة المدرسية لحظة بلحظة.
                         </p>
-                        <div className="flex gap-3">
+                        <div className="flex flex-wrap gap-3 no-print">
                             <button className="bg-white text-teal-700 hover:bg-teal-50 px-6 py-3 rounded-xl font-bold text-sm shadow-lg transition-colors">
                                 + إضافة حالة جديدة
                             </button>
-                            <button onClick={() => { sessionStorage.clear(); window.location.href='/login'; }} className="flex items-center gap-2 px-6 py-3 bg-rose-500/20 text-rose-100 hover:bg-rose-500/40 rounded-xl font-bold text-sm transition-colors border border-rose-500/30">
+                            <button onClick={() => setExportModalOpen(true)} className="bg-white text-indigo-700 hover:bg-indigo-50 px-6 py-3 rounded-xl font-bold text-sm shadow-lg transition-colors flex items-center gap-2">
+                                <FileText className="w-4 h-4" /> تصدير التقرير
+                            </button>
+                            <a href="https://wa.me/201098810794" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-6 py-3 bg-[#25D366] text-white hover:bg-[#25D366]/90 rounded-xl font-bold text-sm transition-colors shadow-lg">
+                                <MessageCircle className="w-4 h-4" />
+                                الدعم الفني
+                            </a>
+                            <button onClick={() => signOut()} className="flex items-center gap-2 px-6 py-3 bg-rose-500/20 text-rose-100 hover:bg-rose-500/40 rounded-xl font-bold text-sm transition-colors border border-rose-500/30">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
                                 تسجيل الخروج
                             </button>
                         </div>
+                    </div>
+
+                    {/* Print Header */}
+                    <div className="hidden print-only mt-8 text-center bg-white p-6 rounded-2xl w-full">
+                        <div className="flex justify-center gap-4 mb-4">
+                            <img src="/logo_new.jpeg" alt="Logo" className="w-20 h-20 rounded-xl border border-gray-200" />
+                            <img src="/second_logo.png" alt="School Logo" className="w-20 h-20 rounded-xl border border-gray-200" />
+                        </div>
+                        <h2 className="text-3xl font-black mb-2 text-black">تقرير الموجه الطلابي العام</h2>
+                        <p className="text-gray-600 font-medium">نظام Nexus EDU - الرفاهية المدرسية ومتابعة الحالات</p>
                     </div>
 
                     {/* AI Advisor */}
