@@ -123,8 +123,8 @@ export default function TeacherDashboardPage() {
               <Sparkles className="w-3 h-3 text-yellow-300 animate-pulse" />
               <span className="text-xs font-bold text-teal-100">بوابة المعلم الذكية</span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-black mb-4 tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-teal-200 leading-[1.2]">
-              أهلاً بك،<br />أ. {teacher.name}
+            <h1 className="text-4xl md:text-5xl font-black mb-4 tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-teal-200 leading-[1.4]">
+              أهلاً بك،<br/>أ. {teacher.name}
             </h1>
 
             <div className="flex flex-wrap gap-4 mt-4">

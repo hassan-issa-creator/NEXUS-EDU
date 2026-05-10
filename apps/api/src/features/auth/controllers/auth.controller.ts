@@ -60,7 +60,6 @@ export class AuthController {
                 httpOnly: true,
                 secure: isProduction,                        // HTTPS only in prod
                 sameSite: isProduction ? 'none' : 'lax',   // cross-origin in prod
-                maxAge: REFRESH_COOKIE_MAX_AGE,
                 path: '/',
             });
 
@@ -97,7 +96,6 @@ export class AuthController {
             httpOnly: true,
             secure: isProduction,
             sameSite: isProduction ? 'none' : 'lax',
-            maxAge: REFRESH_COOKIE_MAX_AGE,
             path: '/',
         });
 
@@ -115,8 +113,13 @@ export class AuthController {
             await this.authService.revokeRefreshToken(refreshToken);
         }
 
-        // Clear refresh token cookie
-        res.clearCookie('refresh_token', { path: '/' });
+        const isProduction = process.env.NODE_ENV === 'production';
+        // Clear refresh token cookie with correct attributes
+        res.clearCookie('refresh_token', { 
+            path: '/',
+            secure: isProduction,
+            sameSite: isProduction ? 'none' : 'lax'
+        });
         return { message: 'Logged out successfully' };
     }
 
