@@ -1,357 +1,310 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useTranslations } from 'next-intl';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Search, Send, Paperclip, MoreVertical, MessageSquare } from 'lucide-react';
-import { useAuth } from '@/lib/hooks/use-auth';
-import { messagingService, Conversation, Message } from '@/lib/services/messaging.service';
-import { toast } from '@/components/ui/use-toast';
-import { io, Socket } from 'socket.io-client';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Search, Send, Paperclip, Phone, Video, 
+  MoreVertical, CheckCheck, Smile, ShieldCheck 
+} from 'lucide-react';
+import { Link } from '@/i18n/routing';
+import { ArrowRight } from 'lucide-react';
 
-export default function MessagesPage() {
-  const t = useTranslations('Parent');
-  const { user } = useAuth();
-  
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [activeChat, setActiveChat] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const socketRef = useRef<Socket | null>(null);
+const TEACHERS = [
+  {
+    id: 1,
+    name: 'أ. محمد عبدالله',
+    subject: 'الرياضيات',
+    avatarColor: 'from-blue-500 to-cyan-500',
+    online: true,
+    unread: 2,
+    lastSeen: 'متصل الآن',
+    messages: [
+      { id: 1, text: 'السلام عليكم أستاذ فيصل، أود إعلامك أن مستوى ابنك في الرياضيات تحسن بشكل ملحوظ هذا الأسبوع.', time: '09:00 ص', sender: 'teacher' },
+      { id: 2, text: 'وعليكم السلام، شكراً لك أستاذ محمد. هل يحتاج لأي تدريبات إضافية في المنزل؟', time: '09:15 ص', sender: 'parent' },
+      { id: 3, text: 'لقد أرسلت له ورقة عمل بسيطة عبر المنصة، إذا قام بحلها ستكون كافية جداً لترسيخ المفهوم.', time: '09:30 ص', sender: 'teacher' }
+    ]
+  },
+  {
+    id: 2,
+    name: 'أ. أحمد سعيد',
+    subject: 'اللغة العربية',
+    avatarColor: 'from-emerald-500 to-teal-500',
+    online: false,
+    unread: 0,
+    lastSeen: 'آخر ظهور: منذ ساعة',
+    messages: [
+      { id: 1, text: 'مرحباً، أرجو التنبيه على الطالب بضرورة إحضار كتاب النصوص غداً.', time: 'أمس', sender: 'teacher' },
+      { id: 2, text: 'أهلاً بك، سأحرص على ذلك إن شاء الله.', time: 'أمس', sender: 'parent' }
+    ]
+  },
+  {
+    id: 3,
+    name: 'أ. خالد الغامدي',
+    subject: 'الفيزياء',
+    avatarColor: 'from-orange-500 to-rose-500',
+    online: true,
+    unread: 1,
+    lastSeen: 'متصل الآن',
+    messages: [
+      { id: 1, text: 'تحية طيبة، درجات الاختبار الدوري ممتازة، ولكن يحتاج لمراجعة قوانين نيوتن.', time: '10:00 ص', sender: 'teacher' }
+    ]
+  },
+  {
+    id: 4,
+    name: 'أ. ياسر الشهراني',
+    subject: 'الكيمياء',
+    avatarColor: 'from-violet-500 to-fuchsia-500',
+    online: false,
+    unread: 0,
+    lastSeen: 'آخر ظهور: أمس',
+    messages: [
+      { id: 1, text: 'أرجو مراجعة تقرير المختبر الذي أرسلته اليوم، أداء الطالب مبهر.', time: 'أمس', sender: 'teacher' }
+    ]
+  },
+  {
+    id: 5,
+    name: 'أ. طارق الزهراني',
+    subject: 'اللغة الإنجليزية',
+    avatarColor: 'from-amber-500 to-orange-500',
+    online: true,
+    unread: 0,
+    lastSeen: 'متصل الآن',
+    messages: [
+      { id: 1, text: 'Good morning! The speaking assessment was great.', time: '08:00 ص', sender: 'teacher' },
+      { id: 2, text: 'Thank you teacher, appreciate your effort.', time: '08:15 ص', sender: 'parent' }
+    ]
+  }
+];
 
-  // Load conversations
-  useEffect(() => {
-    const fetchConversations = async () => {
-      try {
-        const data = await messagingService.getConversations();
-        setConversations(data);
-        if (data.length > 0) {
-          setActiveChat(data[0].id);
-        }
-      } catch (error) {
-        toast({ title: 'خطأ', description: 'تعذر تحميل المحادثات', variant: 'destructive' });
-      } finally {
-        setLoading(false);
+export default function ParentMessagesPage() {
+  const [selectedId, setSelectedId] = useState(1);
+  const [inputText, setInputText] = useState('');
+  const [chats, setChats] = useState(TEACHERS);
+
+  const selectedTeacher = chats.find(t => t.id === selectedId) || chats[0];
+
+  const handleSend = () => {
+    if (!inputText.trim()) return;
+
+    setChats(prev => prev.map(teacher => {
+      if (teacher.id === selectedId) {
+        return {
+          ...teacher,
+          messages: [
+            ...teacher.messages,
+            { id: Date.now(), text: inputText, time: 'الآن', sender: 'parent' }
+          ]
+        };
       }
-    };
-    fetchConversations();
-  }, []);
-
-  // Connect to WebSocket
-  useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    if (!token) return;
-
-    socketRef.current = io(process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001', {
-      path: '/socket.io',
-      namespace: '/events',
-      auth: { token },
-      transports: ['websocket'],
-    });
-
-    socketRef.current.on('connect', () => {
-      console.log('Connected to real-time messaging');
-    });
-
-    socketRef.current.on('new_message', (message: Message) => {
-      setMessages((prev) => [...prev, message]);
-      
-      // Update conversations list preview
-      setConversations((prev) => 
-        prev.map((conv) => {
-          if (conv.id === message.conversationId) {
-            return { ...conv, messages: [message], updatedAt: new Date().toISOString() };
-          }
-          return conv;
-        }).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-      );
-    });
-
-    return () => {
-      if (socketRef.current) socketRef.current.disconnect();
-    };
-  }, []);
-
-  // Load messages when active chat changes
-  useEffect(() => {
-    if (!activeChat) return;
-
-    const fetchMessages = async () => {
-      try {
-        const data = await messagingService.getMessages(activeChat);
-        setMessages(data);
-        scrollToBottom();
-      } catch (error) {
-        toast({ title: 'خطأ', description: 'تعذر تحميل الرسائل', variant: 'destructive' });
-      }
-    };
-    fetchMessages();
-  }, [activeChat]);
-
-  // Scroll to bottom when new messages arrive
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      return teacher;
+    }));
+    setInputText('');
   };
-
-  const handleSendMessage = async () => {
-    if (!newMessage.trim() || !activeChat) return;
-    
-    const tempMessage = newMessage;
-    setNewMessage('');
-    
-    try {
-      const sent = await messagingService.sendMessage(activeChat, tempMessage);
-      setMessages((prev) => [...prev, sent]);
-      
-      // Update conversations list
-      setConversations((prev) => 
-        prev.map((conv) => {
-          if (conv.id === activeChat) {
-            return { ...conv, messages: [sent], updatedAt: new Date().toISOString() };
-          }
-          return conv;
-        }).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-      );
-      
-      scrollToBottom();
-    } catch (error) {
-      toast({ title: 'خطأ', description: 'فشل إرسال الرسالة', variant: 'destructive' });
-      setNewMessage(tempMessage); // restore input
-    }
-  };
-
-  // Helper to get chat display name and avatar
-  const getChatDetails = (conv: Conversation) => {
-    if (conv.type === 'direct') {
-      const other = conv.participants.find(p => p.userId !== user?.id)?.user;
-      return {
-        name: other?.name || 'مستخدم غير معروف',
-        avatar: other?.avatar,
-        role: other?.role === 'PARENT' ? 'ولي أمر' : other?.role === 'STUDENT' ? 'طالب' : 'معلم',
-      };
-    }
-    return { name: conv.title || 'مجموعة', avatar: conv.avatarUrl, role: 'فصل دراسي' };
-  };
-
-  const filteredConversations = conversations.filter(conv => {
-    const details = getChatDetails(conv);
-    return details.name.toLowerCase().includes(searchQuery.toLowerCase());
-  });
-
-  const activeConversation = conversations.find(c => c.id === activeChat);
-  const activeChatDetails = activeConversation ? getChatDetails(activeConversation) : null;
 
   return (
-    <div className="flex h-[calc(100vh-100px)] gap-4 p-4 lg:p-6 overflow-hidden">
-      {/* Conversations Sidebar */}
-      <Card className="w-full lg:w-1/3 xl:w-1/4 flex flex-col overflow-hidden rounded-xl border-gray-200 dark:border-gray-800 shadow-sm">
-        <div className="p-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-950">
-          <h2 className="text-xl font-bold mb-4 text-gray-800 dark:text-gray-100">الرسائل</h2>
-          <div className="relative">
-            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="ابحث عن محادثة..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-3 pr-10 bg-gray-50 dark:bg-gray-900 border-none focus-visible:ring-1"
-            />
+    <div className="space-y-6 pb-12" dir="rtl">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-black text-gray-900 dark:text-white mb-2">التواصل مع المعلمين</h1>
+          <p className="text-sm font-medium text-gray-500">منصة تواصل آمنة ومباشرة مع طاقم التدريس الخاص بأبنائك</p>
+        </div>
+        <Link href="/parent">
+          <motion.button whileHover={{ scale: 1.05 }} className="bg-white dark:bg-[#1e1e2d] border border-gray-100 dark:border-white/5 rounded-xl px-5 py-2.5 text-sm font-bold shadow-sm flex items-center gap-2">
+            العودة للرئيسية <ArrowRight className="w-4 h-4" />
+          </motion.button>
+        </Link>
+      </div>
+
+      <div className="h-[75vh] flex gap-6">
+        {/* Sidebar */}
+        <div className="w-[380px] bg-white dark:bg-[#1e1e2d] border border-gray-100 dark:border-white/5 rounded-[2rem] flex flex-col shadow-sm overflow-hidden flex-shrink-0">
+          <div className="p-6 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
+            <div className="relative">
+              <Search className="w-5 h-5 absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input 
+                type="text" 
+                placeholder="ابحث عن معلم أو مادة..." 
+                className="w-full bg-white dark:bg-black/20 border border-gray-100 dark:border-white/5 rounded-xl py-3.5 pr-11 pl-4 text-sm font-bold focus:outline-none focus:border-amber-500/50 focus:ring-4 focus:ring-amber-500/10 transition-all text-gray-900 dark:text-white shadow-sm"
+              />
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-2">
+            {chats.map((teacher) => (
+              <motion.div 
+                key={teacher.id}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  setSelectedId(teacher.id);
+                  // Mark as read
+                  if(teacher.unread > 0) {
+                    setChats(prev => prev.map(t => t.id === teacher.id ? {...t, unread: 0} : t));
+                  }
+                }}
+                className={`flex items-center gap-4 p-4 rounded-2xl cursor-pointer transition-all ${
+                  selectedId === teacher.id 
+                    ? 'bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 shadow-sm' 
+                    : 'hover:bg-gray-50 dark:hover:bg-white/5 border border-transparent'
+                }`}
+              >
+                <div className="relative">
+                  <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${teacher.avatarColor} flex items-center justify-center text-white font-black shadow-md text-xl`}>
+                    {teacher.name.split(' ')[1]?.[0] || teacher.name[0]}
+                  </div>
+                  {teacher.online && (
+                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white dark:border-[#1e1e2d] rounded-full shadow-sm" />
+                  )}
+                </div>
+                
+                <div className="flex-1 overflow-hidden">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <h3 className={`font-extrabold text-sm truncate ${selectedId === teacher.id ? 'text-amber-700 dark:text-amber-400' : 'text-gray-900 dark:text-white'}`}>
+                      {teacher.name}
+                    </h3>
+                    <span className={`text-[10px] font-bold ${teacher.unread > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-400'}`}>
+                      {teacher.messages[teacher.messages.length - 1]?.time}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className={`text-xs truncate font-medium ${teacher.unread > 0 ? 'text-gray-900 dark:text-gray-200' : 'text-gray-500 dark:text-gray-400'}`}>
+                      {teacher.messages[teacher.messages.length - 1]?.text}
+                    </p>
+                    {teacher.unread > 0 && (
+                      <span className="min-w-[20px] h-5 px-1.5 bg-amber-500 text-white text-[10px] font-black rounded-full flex items-center justify-center flex-shrink-0 shadow-sm">
+                        {teacher.unread}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
           </div>
         </div>
-        
-        <ScrollArea className="flex-1 bg-white dark:bg-gray-950">
-          {loading ? (
-            <div className="p-8 text-center text-gray-500">جاري التحميل...</div>
-          ) : filteredConversations.length === 0 ? (
-            <div className="p-8 text-center text-gray-500 flex flex-col items-center">
-              <MessageSquare className="h-10 w-10 text-gray-300 mb-3" />
-              <p>لا توجد محادثات</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-gray-50 dark:divide-gray-900/50">
-              {filteredConversations.map((conv) => {
-                const details = getChatDetails(conv);
-                const lastMessage = conv.messages?.[0];
-                const isSelected = activeChat === conv.id;
-                
-                return (
-                  <button
-                    key={conv.id}
-                    onClick={() => setActiveChat(conv.id)}
-                    className={`w-full flex items-start gap-3 p-4 text-right transition-colors ${
-                      isSelected 
-                        ? 'bg-primary/5 dark:bg-primary/10 border-l-4 border-l-primary' 
-                        : 'hover:bg-gray-50 dark:hover:bg-gray-900/50 border-l-4 border-l-transparent'
-                    }`}
-                  >
-                    <Avatar className="h-12 w-12 border border-gray-100 shadow-sm">
-                      <AvatarImage src={details.avatar} />
-                      <AvatarFallback className="bg-primary/10 text-primary font-bold">
-                        {details.name.substring(0, 2)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-baseline mb-1">
-                        <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate">
-                          {details.name}
-                        </h3>
-                        {lastMessage && (
-                          <span className="text-xs text-gray-400 whitespace-nowrap mr-2">
-                            {new Date(lastMessage.createdAt).toLocaleDateString('ar-SA', { month: 'short', day: 'numeric' })}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <p className={`text-sm truncate ${isSelected ? 'text-primary' : 'text-gray-500'}`}>
-                          {lastMessage ? (
-                            <span>{lastMessage.senderId === user?.id ? 'أنت: ' : ''}{lastMessage.content}</span>
-                          ) : (
-                            <span className="italic text-gray-400">ابدأ المحادثة</span>
-                          )}
-                        </p>
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
-                          {details.role}
-                        </span>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </ScrollArea>
-      </Card>
 
-      {/* Main Chat Area */}
-      <Card className="hidden lg:flex flex-1 flex-col overflow-hidden rounded-xl border-gray-200 dark:border-gray-800 shadow-sm bg-white dark:bg-gray-950">
-        {activeChat ? (
-          <>
-            {/* Chat Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800 bg-white/50 dark:bg-gray-950/50 backdrop-blur-sm z-10">
-              <div className="flex items-center gap-3">
-                <Avatar className="h-10 w-10 shadow-sm">
-                  <AvatarImage src={activeChatDetails?.avatar} />
-                  <AvatarFallback className="bg-primary/10 text-primary font-bold">
-                    {activeChatDetails?.name.substring(0, 2)}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className="font-bold text-gray-900 dark:text-gray-100">{activeChatDetails?.name}</h3>
-                  <p className="text-xs text-primary">{activeChatDetails?.role}</p>
+        {/* Main Chat Area */}
+        <div className="flex-1 bg-white dark:bg-[#1e1e2d] border border-gray-100 dark:border-white/5 rounded-[2rem] flex flex-col shadow-sm overflow-hidden relative">
+          
+          <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+
+          {/* Chat Header */}
+          <div className="h-24 px-8 border-b border-gray-100 dark:border-white/5 flex items-center justify-between bg-white/80 dark:bg-[#1e1e2d]/80 backdrop-blur-xl relative z-10">
+            <div className="flex items-center gap-5">
+              <div className="relative">
+                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${selectedTeacher.avatarColor} flex items-center justify-center text-white font-black shadow-lg text-xl`}>
+                  {selectedTeacher.name.split(' ')[1]?.[0] || selectedTeacher.name[0]}
                 </div>
+                {selectedTeacher.online && (
+                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white dark:border-[#1e1e2d] rounded-full shadow-sm" />
+                )}
               </div>
-              <Button variant="ghost" size="icon" className="text-gray-500 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
-                <MoreVertical className="h-5 w-5" />
-              </Button>
+              <div>
+                <h2 className="font-black text-gray-900 dark:text-white text-lg mb-0.5 flex items-center gap-2">
+                  {selectedTeacher.name}
+                  <ShieldCheck className="w-4 h-4 text-blue-500" />
+                </h2>
+                <p className={`text-xs font-bold ${selectedTeacher.online ? 'text-emerald-500' : 'text-gray-400'}`}>
+                  معلم مادة {selectedTeacher.subject} • {selectedTeacher.lastSeen}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="w-11 h-11 rounded-full bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 flex items-center justify-center transition-colors text-gray-600 dark:text-gray-300 shadow-sm border border-gray-100 dark:border-white/5">
+                <Phone className="w-5 h-5" />
+              </motion.button>
+              <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="w-11 h-11 rounded-full bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 flex items-center justify-center transition-colors text-gray-600 dark:text-gray-300 shadow-sm border border-gray-100 dark:border-white/5">
+                <Video className="w-5 h-5" />
+              </motion.button>
+              <div className="w-px h-6 bg-gray-200 dark:bg-white/10 mx-1" />
+              <button className="w-11 h-11 rounded-full hover:bg-gray-50 dark:hover:bg-white/5 flex items-center justify-center transition-colors text-gray-400">
+                <MoreVertical className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-gray-50/50 dark:bg-[#151521] relative z-0">
+            <div className="text-center pb-6">
+              <span className="bg-white dark:bg-black/20 border border-gray-100 dark:border-white/5 px-4 py-1.5 rounded-full text-[10px] font-bold text-gray-400 shadow-sm">
+                هذه المحادثة مشفرة ومؤمنة بالكامل
+              </span>
             </div>
 
-            {/* Chat Messages */}
-            <ScrollArea className="flex-1 p-4 bg-gray-50/50 dark:bg-gray-900/20">
-              <div className="flex flex-col gap-4 pb-4">
-                {messages.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center pt-20 text-center">
-                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                      <MessageSquare className="h-8 w-8 text-primary/60" />
-                    </div>
-                    <h4 className="font-medium text-gray-800 dark:text-gray-200">مرحباً بك في المحادثة</h4>
-                    <p className="text-sm text-gray-500 mt-1 max-w-sm">
-                      يمكنك هنا التواصل المباشر وإرسال الرسائل والملفات بشكل فوري وآمن.
-                    </p>
-                  </div>
-                ) : (
-                  messages.map((msg, idx) => {
-                    const isMe = msg.senderId === user?.id;
-                    const showAvatar = !isMe && (idx === 0 || messages[idx - 1].senderId !== msg.senderId);
-                    
-                    return (
-                      <div key={msg.id} className={`flex items-end gap-2 max-w-[80%] ${isMe ? 'mr-auto flex-row-reverse' : 'ml-auto'}`}>
-                        {!isMe && (
-                          <div className="w-8 shrink-0">
-                            {showAvatar && (
-                              <Avatar className="h-8 w-8 shadow-sm">
-                                <AvatarImage src={msg.sender?.avatar} />
-                                <AvatarFallback className="text-xs bg-secondary/20 text-secondary-foreground">
-                                  {msg.sender?.name?.substring(0, 2) || '?'}
-                                </AvatarFallback>
-                              </Avatar>
-                            )}
-                          </div>
-                        )}
-                        
-                        <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                          {showAvatar && (
-                            <span className="text-xs text-gray-500 mb-1 pr-1">{msg.sender?.name}</span>
-                          )}
-                          <div 
-                            className={`px-4 py-3 rounded-2xl shadow-sm ${
-                              isMe 
-                                ? 'bg-primary text-primary-foreground rounded-br-none' 
-                                : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-bl-none'
-                            }`}
-                          >
-                            <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-                          </div>
-                          <span className="text-[11px] text-gray-400 mt-1 px-1">
-                            {new Date(msg.createdAt).toLocaleTimeString('ar-SA', { hour: 'numeric', minute: '2-digit' })}
-                          </span>
+            <AnimatePresence mode="popLayout">
+              {selectedTeacher.messages.map((msg, idx) => {
+                const isMe = msg.sender === 'parent';
+                return (
+                  <motion.div 
+                    key={msg.id}
+                    initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                    className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div className={`flex gap-3 max-w-[75%] ${isMe ? 'flex-row-reverse' : ''}`}>
+                      {!isMe && (
+                        <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${selectedTeacher.avatarColor} flex items-center justify-center text-white text-xs font-black flex-shrink-0 mt-auto shadow-sm`}>
+                          {selectedTeacher.name.split(' ')[1]?.[0]}
+                        </div>
+                      )}
+                      <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                        <div className={`px-5 py-3.5 shadow-sm border ${
+                          isMe 
+                            ? 'bg-gradient-to-br from-amber-500 to-orange-500 border-amber-600 text-white rounded-2xl rounded-br-sm' 
+                            : 'bg-white dark:bg-[#1e1e2d] border-gray-100 dark:border-white/5 text-gray-900 dark:text-white rounded-2xl rounded-bl-sm'
+                        }`}>
+                          <p className="text-sm font-bold leading-relaxed">{msg.text}</p>
+                        </div>
+                        <div className={`flex items-center gap-1.5 mt-2 px-1 ${isMe ? 'flex-row-reverse' : ''}`}>
+                          <span className="text-[10px] font-bold text-gray-400">{msg.time}</span>
+                          {isMe && <CheckCheck className="w-3.5 h-3.5 text-blue-500" />}
                         </div>
                       </div>
-                    );
-                  })
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-            </ScrollArea>
-
-            {/* Message Input */}
-            <div className="p-4 bg-white dark:bg-gray-950 border-t border-gray-100 dark:border-gray-800">
-              <form 
-                onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}
-                className="flex items-center gap-2"
-              >
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="icon" 
-                  className="shrink-0 rounded-full text-gray-500 hover:text-primary hover:bg-primary/5 hover:border-primary/20 transition-colors"
-                >
-                  <Paperclip className="h-5 w-5" />
-                </Button>
-                <Input
-                  placeholder="اكتب رسالتك هنا..."
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  className="flex-1 rounded-full bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 focus-visible:ring-1 focus-visible:ring-primary/50 text-[15px] px-5 py-6"
-                />
-                <Button 
-                  type="submit" 
-                  disabled={!newMessage.trim()} 
-                  className="shrink-0 rounded-full h-12 w-12 p-0 shadow-md transition-all hover:scale-105 active:scale-95"
-                >
-                  <Send className="h-5 w-5 mr-1" />
-                </Button>
-              </form>
-            </div>
-          </>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-gray-500 bg-gray-50/30 dark:bg-gray-900/10">
-            <div className="w-24 h-24 rounded-full bg-gray-100 dark:bg-gray-900 flex items-center justify-center mb-6">
-              <MessageSquare className="h-10 w-10 text-gray-300" />
-            </div>
-            <p className="text-lg">اختر محادثة للبدء في التواصل</p>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
           </div>
-        )}
-      </Card>
+
+          {/* Input Area */}
+          <div className="p-5 bg-white dark:bg-[#1e1e2d] border-t border-gray-100 dark:border-white/5 relative z-10">
+            <div className="flex items-end gap-3 bg-gray-50 dark:bg-black/20 border border-gray-100 dark:border-white/5 rounded-2xl p-2.5 shadow-inner">
+              <button className="w-11 h-11 rounded-xl hover:bg-white dark:hover:bg-white/10 flex items-center justify-center transition-all text-gray-400 hover:text-gray-600 dark:hover:text-white hover:shadow-sm flex-shrink-0">
+                <Smile className="w-6 h-6" />
+              </button>
+              <button className="w-11 h-11 rounded-xl hover:bg-white dark:hover:bg-white/10 flex items-center justify-center transition-all text-gray-400 hover:text-gray-600 dark:hover:text-white hover:shadow-sm flex-shrink-0">
+                <Paperclip className="w-5 h-5" />
+              </button>
+              
+              <textarea 
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
+                placeholder="اكتب رسالتك للمعلم هنا..." 
+                className="flex-1 max-h-32 min-h-[44px] bg-transparent resize-none py-3 px-3 text-sm font-bold focus:outline-none text-gray-900 dark:text-white"
+                rows={1}
+              />
+
+              <motion.button 
+                whileTap={{ scale: 0.9 }}
+                onClick={handleSend}
+                disabled={!inputText.trim()}
+                className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 disabled:from-gray-300 disabled:to-gray-400 disabled:dark:from-white/10 disabled:dark:to-white/5 disabled:text-gray-400 disabled:cursor-not-allowed flex items-center justify-center transition-all text-white flex-shrink-0 shadow-md disabled:shadow-none"
+              >
+                <Send className="w-5 h-5 -mr-1" />
+              </motion.button>
+            </div>
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 }

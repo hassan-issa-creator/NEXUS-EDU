@@ -101,9 +101,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const router = useRouter();
 
     const clearLocalApiSession = () => {
-        localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
-        localStorage.removeItem(DEMO_FLAG_STORAGE_KEY);
-        localStorage.removeItem(DEMO_PROFILE_STORAGE_KEY);
+        sessionStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
+        sessionStorage.removeItem(DEMO_FLAG_STORAGE_KEY);
+        sessionStorage.removeItem(DEMO_PROFILE_STORAGE_KEY);
     };
 
     const setAuthenticatedState = (nextUser: User, nextProfile: UserProfile) => {
@@ -159,8 +159,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return null;
         }
 
-        localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, data.access_token);
-        localStorage.setItem(DEMO_FLAG_STORAGE_KEY, 'false');
+        sessionStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, data.access_token);
+        sessionStorage.setItem(DEMO_FLAG_STORAGE_KEY, 'false');
         return data.access_token as string;
     };
 
@@ -169,8 +169,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return false;
         }
 
-        const isDemo = localStorage.getItem(DEMO_FLAG_STORAGE_KEY) === 'true';
-        const rawProfile = localStorage.getItem(DEMO_PROFILE_STORAGE_KEY);
+        const isDemo = sessionStorage.getItem(DEMO_FLAG_STORAGE_KEY) === 'true';
+        const rawProfile = sessionStorage.getItem(DEMO_PROFILE_STORAGE_KEY);
 
         if (!isDemo || !rawProfile) {
             return false;
@@ -191,7 +191,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const restoreApiSession = async (): Promise<boolean> => {
         const apiBaseUrl = getApiBaseUrl();
-        const token = localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
+        const token = sessionStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
 
         if (!apiBaseUrl || !token) {
             return false;
@@ -315,7 +315,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const {
             data: { subscription },
         } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-            if (localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY)) {
+            if (sessionStorage.getItem(ACCESS_TOKEN_STORAGE_KEY)) {
                 return;
             }
 
@@ -356,8 +356,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     role: demoRole,
                 };
 
-                localStorage.setItem(DEMO_FLAG_STORAGE_KEY, 'true');
-                localStorage.setItem(DEMO_PROFILE_STORAGE_KEY, JSON.stringify(demoProfile));
+                sessionStorage.setItem(DEMO_FLAG_STORAGE_KEY, 'true');
+                sessionStorage.setItem(DEMO_PROFILE_STORAGE_KEY, JSON.stringify(demoProfile));
                 setAuthenticatedState(createApiUser(demoProfile.id, demoProfile.email), demoProfile);
                 return;
             }
@@ -379,8 +379,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         role: normalizeApiRole(data.user.role),
                     };
 
-                    localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, data.access_token);
-                    localStorage.setItem(DEMO_FLAG_STORAGE_KEY, 'false');
+                    sessionStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, data.access_token);
+                    sessionStorage.setItem(DEMO_FLAG_STORAGE_KEY, 'false');
                     setAuthenticatedState(
                         createApiUser(data.user.id, data.user.email),
                         nextProfile
@@ -433,8 +433,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     full_name: fullName,
                     role,
                 };
-                localStorage.setItem(DEMO_FLAG_STORAGE_KEY, 'true');
-                localStorage.setItem(DEMO_PROFILE_STORAGE_KEY, JSON.stringify(demoProfile));
+                sessionStorage.setItem(DEMO_FLAG_STORAGE_KEY, 'true');
+                sessionStorage.setItem(DEMO_PROFILE_STORAGE_KEY, JSON.stringify(demoProfile));
                 setAuthenticatedState(createApiUser(demoProfile.id, demoProfile.email), demoProfile);
                 return;
             }
