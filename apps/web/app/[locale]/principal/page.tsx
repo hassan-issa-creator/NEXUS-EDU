@@ -178,11 +178,30 @@ function PrincipalDashboardInner() {
                     الرجاء اختيار صيغة التقرير المطلوب تصديره. التقرير الإداري يشمل إحصائيات الطلاب، المعلمين، والإيرادات الشاملة.
                 </p>
                 <div className="flex gap-4">
-                    <button onClick={() => { alert('تم تصدير التقرير بصيغة PDF بنجاح.'); setExportModalOpen(false); }} className="flex-1 flex flex-col items-center gap-3 p-5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-2xl border border-indigo-200 transition-colors shadow-sm dark:bg-indigo-500/10 dark:border-indigo-500/30 dark:text-indigo-400">
+                    <button onClick={() => { 
+                        window.print(); 
+                        setExportModalOpen(false); 
+                    }} className="flex-1 flex flex-col items-center gap-3 p-5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-2xl border border-indigo-200 transition-colors shadow-sm dark:bg-indigo-500/10 dark:border-indigo-500/30 dark:text-indigo-400">
                         <FileText className="w-8 h-8" />
                         <span className="font-bold text-sm">تصدير PDF</span>
                     </button>
-                    <button onClick={() => { alert('تم تصدير التقرير بصيغة Excel بنجاح.'); setExportModalOpen(false); }} className="flex-1 flex flex-col items-center gap-3 p-5 bg-teal-50 hover:bg-teal-100 text-teal-600 rounded-2xl border border-teal-200 transition-colors shadow-sm dark:bg-teal-500/10 dark:border-teal-500/30 dark:text-teal-400">
+                    <button onClick={() => { 
+                        const headers = ['المؤشر', 'القيمة'];
+                        const rows = [
+                            ['إجمالي الطلاب', fallbackKpis.totalStudents.toString()],
+                            ['المعلمين', fallbackKpis.totalTeachers.toString()],
+                            ['الفصول الدراسية', fallbackKpis.totalClasses.toString()],
+                            ['المستخدمين النشطين', fallbackKpis.activeUsers.toString()],
+                            ['الإيرادات', fallbackKpis.totalRevenue.toString() + ' ر.س']
+                        ];
+                        const csvContent = "\uFEFF" + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+                        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                        const link = document.createElement('a');
+                        link.href = URL.createObjectURL(blob);
+                        link.download = 'تقرير_المدرسة_NEXUS.csv';
+                        link.click();
+                        setExportModalOpen(false);
+                    }} className="flex-1 flex flex-col items-center gap-3 p-5 bg-teal-50 hover:bg-teal-100 text-teal-600 rounded-2xl border border-teal-200 transition-colors shadow-sm dark:bg-teal-500/10 dark:border-teal-500/30 dark:text-teal-400">
                         <BarChart3 className="w-8 h-8" />
                         <span className="font-bold text-sm">تصدير Excel</span>
                     </button>
@@ -228,10 +247,15 @@ function PrincipalDashboardInner() {
               ))}
             </div>
 
-            <button onClick={() => setExportModalOpen(true)} className="mt-8 flex items-center gap-2 px-6 py-2.5 bg-white text-indigo-900 rounded-xl font-bold text-sm shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:bg-indigo-50 transition-colors border border-indigo-100">
-              <FileText className="w-4 h-4" /> تصدير تقرير شامل
-            </button>
-          </div>
+            <div className="mt-8 flex gap-3">
+              <button onClick={() => setExportModalOpen(true)} className="flex items-center gap-2 px-6 py-2.5 bg-white text-indigo-900 rounded-xl font-bold text-sm shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:bg-indigo-50 transition-colors border border-indigo-100">
+                <FileText className="w-4 h-4" /> تصدير تقرير شامل
+              </button>
+              <button onClick={() => { sessionStorage.clear(); window.location.href='/login'; }} className="flex items-center gap-2 px-6 py-2.5 bg-rose-500/20 text-rose-100 rounded-xl font-bold text-sm shadow-sm hover:bg-rose-500/40 transition-colors border border-rose-500/30">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                تسجيل الخروج
+              </button>
+            </div>
 
           {/* AI Summary Card */}
           <div className="w-full md:w-80 bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 shadow-xl relative overflow-hidden group">

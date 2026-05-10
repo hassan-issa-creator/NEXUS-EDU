@@ -64,11 +64,30 @@ export default function AccountantDashboard() {
                             الرجاء اختيار صيغة التقرير المطلوب تصديره. التقرير يشمل الميزانية، مسيرات الرواتب الحالية، وملخص نفقات الذكاء الاصطناعي.
                         </p>
                         <div className="flex gap-4">
-                            <button onClick={() => { alert('تم تصدير التقرير بصيغة PDF بنجاح.'); setExportModalOpen(false); }} className="flex-1 flex flex-col items-center gap-3 p-5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-2xl border border-rose-200 transition-colors shadow-sm">
+                            <button onClick={() => { 
+                                window.print(); 
+                                setExportModalOpen(false); 
+                            }} className="flex-1 flex flex-col items-center gap-3 p-5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-2xl border border-rose-200 transition-colors shadow-sm">
                                 <FileText className="w-8 h-8" />
                                 <span className="font-bold text-sm">تصدير PDF</span>
                             </button>
-                            <button onClick={() => { alert('تم تصدير التقرير بصيغة Excel بنجاح.'); setExportModalOpen(false); }} className="flex-1 flex flex-col items-center gap-3 p-5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-2xl border border-emerald-200 transition-colors shadow-sm">
+                            <button onClick={() => { 
+                                const headers = ['الموظف', 'الوظيفة', 'الراتب', 'تاريخ الصرف', 'الحالة'];
+                                const rows = employees.map(emp => [
+                                    emp.name,
+                                    emp.role,
+                                    emp.salary.toString(),
+                                    emp.date,
+                                    emp.status === 'paid' ? 'تم الصرف' : 'معلق'
+                                ]);
+                                const csvContent = "\uFEFF" + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+                                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                                const link = document.createElement('a');
+                                link.href = URL.createObjectURL(blob);
+                                link.download = 'تقرير_المحاسبة_NEXUS.csv';
+                                link.click();
+                                setExportModalOpen(false);
+                            }} className="flex-1 flex flex-col items-center gap-3 p-5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-2xl border border-emerald-200 transition-colors shadow-sm">
                                 <Sheet className="w-8 h-8" />
                                 <span className="font-bold text-sm">تصدير Excel</span>
                             </button>
@@ -86,6 +105,9 @@ export default function AccountantDashboard() {
                     <button onClick={() => setExportModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-card border border-slate-200 rounded-xl text-muted-foreground font-bold hover:bg-muted/50 transition-colors shadow-sm">
                         <Download className="w-4 h-4" />
                         تصدير التقرير
+                    </button>
+                    <button onClick={() => window.location.href='/login'} className="flex items-center justify-center w-10 h-10 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl transition-colors border border-red-100 shadow-sm" title="تسجيل الخروج">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
                     </button>
                     <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center border-2 border-white shadow-md">
                         <span className="text-rose-600 font-bold text-lg">M</span>
