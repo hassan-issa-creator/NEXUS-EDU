@@ -3,6 +3,17 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { DollarSign, Users, CheckCircle, Clock, Wallet, Search, Filter, Download, FileText, Sheet, BarChart3, BrainCircuit } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+
+const budgetData = [
+  { name: 'ش 1', الميزانية: 40000, المصروفات: 24000 },
+  { name: 'ش 2', الميزانية: 70000, المصروفات: 45000 },
+  { name: 'ش 3', الميزانية: 45000, المصروفات: 30000 },
+  { name: 'ش 4', الميزانية: 90000, المصروفات: 80000 },
+  { name: 'ش 5', الميزانية: 65000, المصروفات: 40000 },
+  { name: 'ش 6', الميزانية: 80000, المصروفات: 60000 },
+  { name: 'ش 7', الميزانية: 50000, المصروفات: 20000 },
+];
 
 interface Employee {
     id: number;
@@ -127,16 +138,32 @@ export default function AccountantDashboard() {
                 <div className="lg:col-span-2 bg-card rounded-[20px] shadow-sm border border-border p-6 relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-64 h-64 bg-indigo-50 dark:bg-indigo-900/10 rounded-full blur-3xl -translate-x-32 -translate-y-32" />
                     <h3 className="text-lg font-extrabold mb-6 flex items-center gap-2 text-foreground relative z-10"><BarChart3 className="w-5 h-5 text-indigo-500"/> تحليل الميزانية الشهرية (Flow Chart)</h3>
-                    <div className="flex items-end gap-6 h-40 mt-4 relative z-10 pl-4">
-                        {[40, 70, 45, 90, 65, 80, 50].map((h, i) => (
-                            <div key={i} className="flex-1 flex flex-col items-center gap-3 h-full">
-                                <div className="w-full bg-indigo-50 dark:bg-indigo-900/20 rounded-t-xl relative group h-full flex items-end overflow-hidden">
-                                    <div className="w-full bg-indigo-500 rounded-t-xl transition-all duration-700 hover:bg-indigo-400 cursor-pointer" style={{ height: `${h}%` }}></div>
-                                    <span className="absolute bottom-2 left-1/2 -translate-x-1/2 text-white font-bold text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">{h}k</span>
-                                </div>
-                                <span className="text-xs text-muted-foreground font-bold">ش {i+1}</span>
-                            </div>
-                        ))}
+                    <div className="h-48 mt-4 relative z-10 w-full" dir="ltr">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={budgetData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="colorBudget" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
+                                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                                    </linearGradient>
+                                    <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3}/>
+                                        <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
+                                    </linearGradient>
+                                </defs>
+                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b', fontWeight: 'bold' }} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                <RechartsTooltip 
+                                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.1)', padding: '12px 16px' }}
+                                    itemStyle={{ fontWeight: 'bold' }}
+                                    formatter={(value: any) => [`${value} ر.س`, '']}
+                                    labelStyle={{ fontWeight: 'bold', color: '#64748b', marginBottom: '8px' }}
+                                />
+                                <Area type="monotone" dataKey="الميزانية" stroke="#6366f1" strokeWidth={4} fillOpacity={1} fill="url(#colorBudget)" />
+                                <Area type="monotone" dataKey="المصروفات" stroke="#f43f5e" strokeWidth={4} fillOpacity={1} fill="url(#colorExpense)" />
+                            </AreaChart>
+                        </ResponsiveContainer>
                     </div>
                 </div>
                 <div className="bg-gradient-to-br from-rose-500/10 to-indigo-600/5 rounded-[20px] shadow-sm border border-rose-500/20 p-6 flex flex-col relative overflow-hidden">
