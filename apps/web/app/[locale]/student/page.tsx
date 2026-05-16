@@ -15,8 +15,8 @@ import {
 } from 'recharts'
 
 import { StatChip } from './_components/StatChip'
-import { AiTutorWidget } from './_components/AiTutorWidget'
 import { ProgressRing } from './_components/ProgressRing'
+import { AiInsightCard } from '@/components/ai/ai-insight-card'
 import { PomodoroTimer } from './_components/PomodoroTimer'
 import { AchievementsShowcase } from './_components/AchievementsShowcase'
 import { AssignmentsTimeline } from './_components/AssignmentsTimeline'
@@ -326,6 +326,7 @@ export default function StudentDashboardPage() {
 
         {/* Sidebar */}
         <div className="flex flex-col gap-6">
+          <AiInsightCard />
           <PomodoroTimer />
           <AchievementsShowcase count={gamification.achievementsUnlocked} />
         </div>
@@ -375,8 +376,6 @@ export default function StudentDashboardPage() {
         </motion.div>
       )}
 
-      {/* AI Floating Button */}
-      <AiTutorWidget />
     </div>
   )
 }

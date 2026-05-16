@@ -6,6 +6,7 @@ import {
   Query,
   Param,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -73,9 +74,11 @@ export class AIAssistantController {
   @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Ask a question to the AI assistant' })
   async ask(
-    @Body() body: { question: string; subject?: string },
+    @Req() req: any,
+    @Body() body: { question: string; subject?: string; history?: {role: string, content: string}[] },
   ): Promise<{ success: boolean; data: any }> {
-    const result = await this.aiService.ask(body.question, body.subject);
+    const user = req.user;
+    const result = await this.aiService.ask(body.question, body.subject, body.history, user);
     return { success: true, data: result };
   }
 
@@ -86,6 +89,36 @@ export class AIAssistantController {
     @Param('submissionId') submissionId: string,
   ): Promise<{ success: boolean; data: any }> {
     const result = await this.aiService.gradeSubmission(submissionId);
+    return { success: true, data: result };
+  }
+
+  @Post('process-document')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Process text to generate lesson plan, quiz, and flashcards' })
+  async processDocument(
+    @Body() body: { text: string },
+  ): Promise<{ success: boolean; data: any }> {
+    const result = await this.aiService.processDocument(body.text);
+    return { success: true, data: result };
+  }
+
+  @Post('parent-advice')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Get AI advice for parent' })
+  async getParentAdvice(
+    @Body() body: { studentId: string; question?: string },
+  ): Promise<{ success: boolean; data: any }> {
+    const result = await this.aiService.getParentAdvice(body.studentId, body.question);
+    return { success: true, data: result };
+  }
+
+  @Get('learning-risk/:studentId')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Get learning risk level for a student' })
+  async getLearningRisk(
+    @Param('studentId') studentId: string,
+  ): Promise<{ success: boolean; data: any }> {
+    const result = await this.aiService.getLearningRisk(studentId);
     return { success: true, data: result };
   }
 }

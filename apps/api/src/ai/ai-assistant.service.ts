@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import OpenAI from 'openai';
 
 export interface QuestionSuggestion {
   question: string;
@@ -231,6 +232,49 @@ export class AIAssistantService {
       recommendations.push('أداء ممتاز! استمر هكذا');
     }
 
+    let finalRiskFactors = riskFactors;
+    let finalRecommendations = recommendations;
+
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (apiKey && apiKey !== 'sk_placeholder' && !apiKey.includes('placeholder')) {
+      try {
+        const openai = new OpenAI({ apiKey });
+        
+        const prompt = `قم بتحليل أداء هذا الطالب كخبير تربوي وقدم نصائح مخصصة.
+بيانات الطالب:
+- معدل الدرجات: ${avgGrade.toFixed(1)}%
+- نسبة الحضور: ${attendanceRate.toFixed(1)}%
+- تأخير تسليم الواجبات: ${lateSubmissions} مرة
+
+المطلوب إرجاع نتيجتين باختصار شديد:
+1. "riskFactors": قائمة بنقاط الضعف أو المخاطر (مثال: تأخر متكرر، غياب، درجات منخفضة). إذا كان كل شيء جيد، اتركها فارغة.
+2. "recommendations": توصية واحدة أو اثنتين لتشجيع الطالب وتحسين أدائه (مثال: ركز أكثر على الواجبات، عمل رائع استمر).
+
+قم بإرجاع النتيجة بصيغة JSON فقط بهذا الشكل:
+{
+  "riskFactors": ["نقطة 1", "نقطة 2"],
+  "recommendations": ["نصيحة 1"]
+}`;
+
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [{ role: "user", content: prompt }],
+          response_format: { type: "json_object" },
+          temperature: 0.6,
+        });
+
+        const parsed = JSON.parse(response.choices[0].message.content || '{}');
+        if (parsed.riskFactors && Array.isArray(parsed.riskFactors)) {
+          finalRiskFactors = parsed.riskFactors;
+        }
+        if (parsed.recommendations && Array.isArray(parsed.recommendations)) {
+          finalRecommendations = parsed.recommendations;
+        }
+      } catch (error) {
+        this.logger.error('OpenAI Prediction Error:', error);
+      }
+    }
+
     return {
       studentId,
       predictedGrade: Math.min(
@@ -245,8 +289,8 @@ export class AIAssistantService {
         ),
       ),
       confidence: Math.min(100, Math.max(50, confidence)),
-      riskFactors,
-      recommendations,
+      riskFactors: finalRiskFactors,
+      recommendations: finalRecommendations,
     };
   }
 
@@ -284,8 +328,63 @@ export class AIAssistantService {
   /**
    * General Q&A Assistant
    */
-  async ask(question: string, subject?: string): Promise<{ answer: string; isMock: boolean }> {
+  async ask(
+    question: string, 
+    subject?: string, 
+    history?: {role: string, content: string}[],
+    user?: any
+  ): Promise<{ answer: string; isMock: boolean }> {
     this.logger.log(`AI Q&A: ${question}`);
+
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (apiKey && apiKey !== 'sk_placeholder' && !apiKey.includes('placeholder')) {
+      try {
+        const openai = new OpenAI({ apiKey });
+        
+        let systemPrompt = `أنت المساعد الذكي "NEXUS" الخاص بمنصة مليون التعليمية.
+أنت تتحدث باللغة العربية بشكل افتراضي، إلا إذا سألك المستخدم بلغة أخرى.
+ردودك يجب أن تكون مختصرة، ودودة، احترافية، ومفيدة جداً. يجب أن تستخدم markdown عند الحاجة للقوائم أو الكود.
+حاول ألا تعطي الإجابة المباشرة لأسئلة الواجبات، بل اشرح طريقة الوصول للحل لمساعدة المتعلم.`;
+
+        if (user) {
+           systemPrompt += `\nأنت تتحدث الآن مع مستخدم اسمه "${user.name || user.firstName || 'مستخدم'}" ودوره في المنصة هو "${user.role || 'STUDENT'}".`;
+           if (user.role === 'STUDENT') {
+              systemPrompt += `\nبما أنه طالب، كن مشجعاً وداعماً له في دراسته.`;
+           } else if (user.role === 'TEACHER') {
+              systemPrompt += `\nبما أنه معلم، ساعده في اقتراح طرق تدريس مبتكرة، وساعده على إنشاء المحتوى وتوفير وقته.`;
+           } else if (user.role === 'PARENT') {
+              systemPrompt += `\nبما أنه ولي أمر، ساعده في فهم أفضل الممارسات لدعم أبنائه وتطويرهم في المنزل.`;
+           }
+        }
+        
+        if (subject && subject !== 'General') {
+           systemPrompt += `\nالسياق الحالي أو الموضوع: ${subject}`;
+        }
+
+        const formattedHistory: any[] = (history || []).map(h => ({
+          role: h.role === 'user' ? 'user' : 'assistant',
+          content: h.content
+        }));
+
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: systemPrompt },
+            ...formattedHistory,
+            { role: "user", content: question }
+          ],
+          temperature: 0.7,
+          max_tokens: 800,
+        });
+
+        return {
+          answer: response.choices[0].message.content || 'عذراً، واجهت مشكلة في التفكير. هل يمكنك إعادة السؤال؟',
+          isMock: false
+        };
+      } catch (error) {
+        this.logger.error('OpenAI Error:', error);
+      }
+    }
 
     // In production, use Gemini/OpenAI
     // For now, simulated intelligent responses in Arabic
@@ -330,11 +429,50 @@ export class AIAssistantService {
     if (!submission) throw new Error('Submission not found');
 
     this.logger.log(`AI Auto-grading submission for ${submission.student.name}`);
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (apiKey && apiKey !== 'sk_placeholder' && !apiKey.includes('placeholder')) {
+      try {
+        const openai = new OpenAI({ apiKey });
+        
+        const prompt = `أنت معلم خبير يقوم بتصحيح واجب مدرسي.
+عنوان الواجب: "${submission.assignment.title}"
+وصف الواجب: "${submission.assignment.description || 'لا يوجد وصف'}"
+إجابة الطالب (${submission.student?.name || 'طالب'}): 
+"${submission.content || 'لم يكتب نصاً، ربما أرفق ملفاً.'}"
 
-    // Simulated evaluation logic
-    // In real app, we would send submission.content to an LLM
-    const score = Math.floor(Math.random() * 5) + 15; // 15-20 range
+المطلوب: إرجاع تقييم بصيغة JSON فقط بهذا الشكل:
+{
+  "score": [درجة من أصل ${submission.assignment.maxScore}],
+  "feedback": "[رسالة للطالب تشرح سبب الدرجة وتشجعه بطريقة ودودة وإيجابية]",
+  "criteria_breakdown": {
+    "الدقة العلمية": [درجة],
+    "التنظيم": [درجة],
+    "اللغة والأسلوب": [درجة]
+  }
+}`;
+
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [{ role: "user", content: prompt }],
+          response_format: { type: "json_object" },
+          temperature: 0.3,
+        });
+
+        const parsed = JSON.parse(response.choices[0].message.content || '{}');
+        return {
+          score: parsed.score || Math.floor(submission.assignment.maxScore * 0.8),
+          feedback: parsed.feedback || 'أداء جيد جداً!',
+          criteria_breakdown: parsed.criteria_breakdown || { "تقييم عام": 10 }
+        };
+      } catch (error) {
+        this.logger.error('OpenAI Grading Error:', error);
+      }
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    // Simulated fallback evaluation logic
+    const score = Math.floor(Math.random() * (submission.assignment.maxScore * 0.3)) + (submission.assignment.maxScore * 0.7); 
 
     const feedbacks = [
       "إجابة نموذجية وممتازة! لقد أظهرت فهماً عميقاً للموضوع. استمر في هذا المستوى الرائع.",
@@ -346,11 +484,138 @@ export class AIAssistantService {
       score,
       feedback: feedbacks[Math.floor(Math.random() * feedbacks.length)],
       criteria_breakdown: {
-        "الدقة العلمية": Math.floor(Math.random() * 5) + 5,
-        "التنظيم": Math.floor(Math.random() * 5) + 5,
-        "اللغة والأسلوب": Math.floor(Math.random() * 5) + 5
+        "الدقة العلمية": 10,
+        "التنظيم": 10,
+        "اللغة والأسلوب": 10
       }
     };
+  }
+
+  /**
+   * Process Document into lesson resources (summary, quiz, flashcards, etc.)
+   */
+  async processDocument(text: string): Promise<any> {
+    this.logger.log('AI Auto-generating lesson plan from text...');
+    
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (apiKey && apiKey !== 'sk_placeholder' && !apiKey.includes('placeholder')) {
+      try {
+        const openai = new OpenAI({ apiKey });
+        
+        const prompt = `بصفتك خبيراً تربوياً، قم بتحليل النص التالي وتحويله إلى محتوى تعليمي تفاعلي.
+النص:
+"""${text.substring(0, 3000)}"""
+
+المطلوب: إرجاع المحتوى بصيغة JSON فقط بهذا الشكل:
+{
+  "summary": "[ملخص شامل ومبسط للنص]",
+  "keyConcepts": ["[المفهوم الأول]", "[المفهوم الثاني]"],
+  "quiz": [
+    {
+      "question": "[السؤال]",
+      "options": ["[الخيار الأول]", "[الخيار الثاني]", "[الخيار الثالث]", "[الخيار الرابع]"],
+      "correctAnswer": 0,
+      "explanation": "[شرح للإجابة الصحيحة]"
+    }
+  ],
+  "flashcards": [
+    {
+      "front": "[المصطلح]",
+      "back": "[التعريف المبسط]"
+    }
+  ],
+  "homework": ["[مهمة 1]", "[مهمة 2]"]
+}
+
+(ملاحظة: اختر correctAnswer كـ index من 0 إلى 3). 
+اجعل الـ quiz يحتوي على 3 أسئلة، والـ flashcards على 4 مصطلحات.
+`;
+
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [{ role: "user", content: prompt }],
+          response_format: { type: "json_object" },
+          temperature: 0.5,
+        });
+
+        return JSON.parse(response.choices[0].message.content || '{}');
+      } catch (error) {
+        this.logger.error('OpenAI processDocument Error:', error);
+      }
+    }
+
+    // Fallback Mock Data if OpenAI fails or key is missing
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    return {
+      summary: "يُعتبر هذا النص مقدمة شاملة تغطي المبادئ الأساسية للموضوع، ويشرح الأسباب والتأثيرات بشكل مبسط.",
+      keyConcepts: ["المبدأ الأول", "المبدأ الثاني", "التطبيق العملي"],
+      quiz: [
+        {
+          question: "ما هو الهدف الرئيسي من هذا الموضوع؟",
+          options: ["الخيار الخاطئ 1", "الخيار الصحيح", "الخيار الخاطئ 2", "الخيار الخاطئ 3"],
+          correctAnswer: 1,
+          explanation: "الهدف الرئيسي هو كذا وكذا كما تم ذكره في الفقرة الأولى."
+        }
+      ],
+      flashcards: [
+        { front: "المصطلح الأول", back: "تعريف المصطلح الأول بشكل مبسط وسهل التذكر." },
+        { front: "المصطلح الثاني", back: "التعريف الثاني." }
+      ],
+      homework: ["قم بكتابة ملخص مكون من 100 كلمة", "ابحث عن تطبيق عملي واحد للموضوع"]
+    };
+  }
+
+  async getParentAdvice(studentId: string, question?: string): Promise<any> {
+    const studentInfo = await this.predictPerformance(studentId);
+    
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (apiKey && apiKey !== 'sk_placeholder' && !apiKey.includes('placeholder')) {
+      try {
+        const openai = new OpenAI({ apiKey });
+        
+        const prompt = `بصفتك مستشاراً تعليمياً خبيراً، اقرأ بيانات الطالب المرفقة وأجب على ولي أمره.
+درجة الطالب المتوقعة: ${studentInfo.predictedGrade}%
+نقاط الضعف: ${studentInfo.riskFactors.join(', ') || 'لا يوجد'}
+سؤال ولي الأمر: "${question || 'ما هي نصيحتك العامة لي لمساعدة ابني؟'}"
+
+أرجع الرد بصيغة JSON:
+{
+  "summary": "ملخص عام ونصيحة لولي الأمر",
+  "overallStatus": "excellent | good | needsAttention | urgent",
+  "positives": ["نقطة قوة 1", "نقطة قوة 2"],
+  "concerns": ["ملاحظة 1", "ملاحظة 2"],
+  "actionableAdvice": ["خطوة عملية 1", "خطوة عملية 2"]
+}`;
+
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [{ role: "user", content: prompt }],
+          response_format: { type: "json_object" },
+          temperature: 0.6,
+        });
+
+        return JSON.parse(response.choices[0].message.content || '{}');
+      } catch (err) {
+        this.logger.error('Parent advice AI error', err);
+      }
+    }
+
+    return {
+      summary: "الطالب يبدي تحسناً ملحوظاً، ولكن يحتاج إلى متابعة مستمرة في حل الواجبات.",
+      overallStatus: "good",
+      positives: ["مستوى ذكاء عالي", "تفاعل جيد في المواد المفضلة"],
+      concerns: ["التأخر في تسليم الواجبات"],
+      actionableAdvice: ["تخصيص ساعة يومياً لمراجعة الدروس", "التحفيز المستمر عند الإنجاز"]
+    };
+  }
+
+  async getLearningRisk(studentId: string): Promise<any> {
+    const info = await this.predictPerformance(studentId);
+    let riskLevel = 'low';
+    if (info.predictedGrade < 65 || info.riskFactors.length > 2) riskLevel = 'high';
+    else if (info.predictedGrade < 80) riskLevel = 'medium';
+
+    return { riskLevel };
   }
 
   private getQuestionTemplates(

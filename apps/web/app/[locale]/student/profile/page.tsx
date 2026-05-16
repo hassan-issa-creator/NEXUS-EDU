@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Brain, TrendingUp, Target, BookOpen, Star, AlertCircle } from 'lucide-react';
-import { useAuth } from '@/lib/hooks/use-auth';
+import { Brain, TrendingUp, Target, BookOpen, Star, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { useAuth } from '@/contexts/auth-context';
 import { apiClient } from '@/lib/api/client';
 import {
   Radar,
@@ -45,7 +46,6 @@ export default function SmartProfilePage() {
 
   useEffect(() => {
     if (!user?.id) return;
-
     const fetchProfileData = async () => {
       try {
         const [profileRes, skillsRes] = await Promise.all([

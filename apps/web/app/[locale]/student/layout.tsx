@@ -5,7 +5,6 @@ import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardHeader } from '@/components/layout/dashboard-header'
 import { PageTransition } from '@/components/ui/page-transition'
 import { SocketProvider } from '@/lib/providers/socket-provider'
-import { AiTutorWidget } from '@/components/ai/ai-tutor-widget'
 import { XpToast } from '@/components/gamification/xp-toast'
 
 export default function StudentLayout({ children }: { children: ReactNode }) {
@@ -19,8 +18,6 @@ export default function StudentLayout({ children }: { children: ReactNode }) {
                         <PageTransition>
                             {children}
                         </PageTransition>
-                        {/* Floating AI Tutor Widget */}
-                        <AiTutorWidget />
                         {/* Gamification Toast Notifications */}
                         <XpToast />
                     </main>
